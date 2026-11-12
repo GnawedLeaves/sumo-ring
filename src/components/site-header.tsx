@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const NAV_ITEMS = [
   { href: "/streams", label: "Streams" },
@@ -10,19 +11,20 @@ export const NAV_ITEMS = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-black bg-cream-paper">
+    <header className="border-b border-line bg-canvas">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-6 px-4 py-4 md:px-6">
-        <Link href="/" className="font-display text-subheading font-bold italic text-indigo-frame">
+        <Link href="/" className="font-display text-subheading font-bold italic text-brand">
           Sumo Hub
         </Link>
         <nav className="flex items-center gap-5 overflow-x-auto text-body-sm">
           {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className="whitespace-nowrap hover:text-indigo-frame">
+            <Link key={item.href} href={item.href} className="whitespace-nowrap hover:text-brand">
               {item.label}
             </Link>
           ))}
+          <ThemeToggle />
           <Link
-            href="/login"
+            href="/profile"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-electric-teal text-caption font-bold text-white"
             aria-label="Account"
           >

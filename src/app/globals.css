@@ -22,6 +22,15 @@
   --color-daffodil: #f9e44d;
   --color-highlighter-yellow: #ffff00;
 
+  /* Semantic, theme-aware tokens — use these for UI chrome. Overridden for dark mode below. */
+  --color-canvas: #f2ebe6;
+  --color-surface: #ffffff;
+  --color-line: #000000;
+  --color-ink: #000000;
+  --color-ink-soft: #2c2c2c;
+  --color-brand: #160572;
+  --color-hover: #fef9ee;
+
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
   --font-jp: var(--font-noto-jp), sans-serif;
@@ -48,9 +57,36 @@
   --radius-pill: 30px;
 }
 
+/*
+ * Dark mode: "gallery after hours" — deep indigo-black canvas, warm cream ink, soft hairlines.
+ * Follows the OS setting unless the user picks one (data-theme on <html>, set by ThemeToggle).
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #100d1c;
+    --color-surface: #1b1730;
+    --color-line: #8d86a8;
+    --color-ink: #f2ebe6;
+    --color-ink-soft: #bdb6cf;
+    --color-brand: #b3a8ff;
+    --color-hover: #262040;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-canvas: #100d1c;
+  --color-surface: #1b1730;
+  --color-line: #8d86a8;
+  --color-ink: #f2ebe6;
+  --color-ink-soft: #bdb6cf;
+  --color-brand: #b3a8ff;
+  --color-hover: #262040;
+  color-scheme: dark;
+}
+
 body {
-  background: var(--color-cream-paper);
-  color: var(--color-obsidian-hairline);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: 1.36;
@@ -61,7 +97,7 @@ body {
     @apply mx-auto w-full max-w-[1200px] px-4 py-16 md:px-6;
   }
   .frame {
-    @apply border border-black;
+    @apply border border-line;
   }
   .btn-pill {
     @apply inline-flex items-center gap-2 rounded-pill px-7 py-3 text-body-sm font-bold text-white;

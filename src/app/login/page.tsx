@@ -1,5 +1,13 @@
-import { PageStub } from "@/components/page-stub";
+import type { Metadata } from "next";
+import { LoginForm } from "@/components/account/login-form";
+
+export const metadata: Metadata = { title: "Sign in · Sumo Hub" };
 
 export default function Page() {
-  return <PageStub title="Account">Firebase sign-in and profile.</PageStub>;
+  return (
+    <section className="page flex flex-col gap-10">
+      <h1 className="text-center font-display text-heading-lg text-brand">Sign in</h1>
+      <LoginForm />
+    </section>
+  );
 }

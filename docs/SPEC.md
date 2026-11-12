@@ -69,6 +69,21 @@ Next.js (App Router) app for following professional sumo: live streams, basho re
 - Calendar of upcoming basho with countdowns.
 - Six honbasho per year: Hatsu (Jan, Tokyo), Haru (Mar, Osaka), Natsu (May, Tokyo), Nagoya (Jul), Aki (Sep, Tokyo), Kyushu (Nov, Fukuoka).
 
+## Build status (Nov 2026)
+
+| Feature | Status |
+|---|---|
+| 1 Streams — player, picker, admin add/edit/remove/reorder | Done |
+| 1.1 In-stream clipping | Groundwork: clips store `videoUrl` + `startSec`/`endSec` + `streamId`; admin can clip a saved stream by timestamps |
+| 1.2 Clip upload per bout | Done (upload needs Hygraph; link/timestamp clips work everywhere) |
+| 1.3 Live bout sidebar | Done — auto-refreshes every 30s |
+| 2 Access control | Done — Firebase session cookie + `admin` claim; search history in localStorage |
+| 3.1 / 3.3 Current basho | Done — hero, Makuuchi/Juryo sidebar, bout detail; falls back to latest winners |
+| 3.2 History + basho detail | Done |
+| 4 Rikishi list / search / infinite scroll / detail | Done (detail = lists/tables; charts TBD) |
+| 5 News | Read side done (list, tags, archive >90 days, article). **Scrape + translate job not built yet** |
+| 6 Calendar | Done |
+
 ## Open items
 
 - Stream list (from owner).
