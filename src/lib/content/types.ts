@@ -72,6 +72,7 @@ export interface ContentStore {
 
   listNews(): Promise<NewsArticle[]>;
   getNews(slug: string): Promise<NewsArticle | null>;
+  createNews(input: Omit<NewsArticle, "id">): Promise<NewsArticle>;
 
   listPortraits(): Promise<Portrait[]>;
 }

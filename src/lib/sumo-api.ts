@@ -9,15 +9,49 @@ export type Division = (typeof DIVISIONS)[number];
 
 type Query = Record<string, string | number | boolean | undefined>;
 
+export class SumoApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SumoApiError";
+  }
+}
+
+const TIMEOUT_MS = 20_000;
+const RETRY_DELAYS_MS = [500, 1500];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * GET with a timeout and retries for transient failures (network errors, timeouts, 429, 5xx).
+ * 404 and other 4xx fail immediately with a SumoApiError.
+ */
 async function get<T>(path: string, query: Query = {}): Promise<T> {
   const url = new URL(path, BASE_URL);
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined) url.searchParams.set(key, String(value));
   }
-  // Caching is handled by `use cache` in sumo-data.ts; never let fetch cache large payloads itself.
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Sumo API ${res.status} for ${url.pathname}${url.search}`);
-  return res.json() as Promise<T>;
+  const where = `${url.pathname}${url.search}`;
+  for (let attempt = 0; ; attempt++) {
+    let res: Response;
+    try {
+      // Caching is handled by `use cache` in sumo-data.ts; never let fetch cache large payloads itself.
+      res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+    } catch (e) {
+      if (attempt < RETRY_DELAYS_MS.length) {
+        await sleep(RETRY_DELAYS_MS[attempt]);
+        continue;
+      }
+      throw new SumoApiError(0, `Sumo API unreachable for ${where}: ${e instanceof Error ? e.message : e}`);
+    }
+    if (res.ok) return res.json() as Promise<T>;
+    if ((res.status === 429 || res.status >= 500) && attempt < RETRY_DELAYS_MS.length) {
+      await sleep(RETRY_DELAYS_MS[attempt]);
+      continue;
+    }
+    throw new SumoApiError(res.status, `Sumo API ${res.status} for ${where}`);
+  }
 }
 
 // ---------- Response shapes (verified against live payloads, Nov 2026) ----------

@@ -145,6 +145,14 @@ export const hygraphStore: ContentStore = {
     return d.newsArticle ? clean(d.newsArticle) : null;
   },
 
+  async createNews(input) {
+    const d = await gql<{ createNewsArticle: NewsArticle }>(
+      `mutation($data: NewsArticleCreateInput!) { createNewsArticle(data: $data) { ${NEWS} } }`,
+      { data: clean(input) },
+    );
+    return d.createNewsArticle;
+  },
+
   async listPortraits(): Promise<Portrait[]> {
     const d = await gql<{ rikishiPortraits: { rikishiId: number; image?: { url: string } | null }[] }>(
       `{ rikishiPortraits(first: 1000) { rikishiId image { url } } }`,

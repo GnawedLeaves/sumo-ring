@@ -81,6 +81,13 @@ export const localStore: ContentStore = {
   async getNews(slug) {
     return (await load()).news.find((n) => n.slug === slug) ?? null;
   },
+  async createNews(input) {
+    const data = await load();
+    const article = { ...input, id: randomUUID() };
+    data.news.push(article);
+    await save(data);
+    return article;
+  },
 
   async listPortraits() {
     return (await load()).portraits;

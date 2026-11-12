@@ -14,13 +14,14 @@ import { getPortraitMap } from "@/lib/content";
 import { boutId, record } from "@/lib/format";
 import { getLiveContext, getTodaysBouts } from "@/lib/live";
 import { getBashoRecords, getBashoSummary } from "@/lib/sumo-data";
+import { Romaji } from "@/components/jp";
 
 export const metadata: Metadata = { title: "Basho · Sumo Hub" };
 
 export default function Page({ searchParams }: PageProps<"/basho">) {
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho<span lang="ja" className="ml-2 font-jp text-[0.6em] font-normal">場所</span></h1>
       <BashoTabs active="current" />
       <Suspense fallback={<p className="text-body-sm">Loading today&apos;s torikumi…</p>}>
         <CurrentBasho searchParams={searchParams} />
@@ -79,7 +80,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
           <Link href={href({ bout: boutId(current.bout), div: current.division })} scroll={false} className="block bg-indigo-frame p-4 text-white sm:p-6 md:p-10">
             <span className="flex flex-wrap items-center gap-2">
               <LiveIndicator />
-              <span className="badge">ON THE DOHYŌ · {current.division.toUpperCase()}</span>
+              <span className="badge">ON THE DOHYŌ 土俵 · <Romaji text={current.division.toUpperCase()} kind="division" /></span>
             </span>
             <span className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
               {[
@@ -93,7 +94,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
                     <span className="max-w-full break-words font-display text-subheading font-bold leading-tight sm:text-heading md:text-heading-lg md:leading-none">
                       <RikishiName en={s.en} jp={rec?.jp} stacked />
                     </span>
-                    <span className="text-caption sm:text-body-sm">{s.rank}</span>
+                    <span className="text-caption sm:text-body-sm"><Romaji text={s.rank} kind="rank" /></span>
                     {rec && <span className="font-display text-subheading">{record(rec.wins, rec.losses, rec.absences)}</span>}
                   </span>
                 );
@@ -119,7 +120,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
                 scroll={false}
                 className={`flex-1 py-3 text-center text-body-sm font-bold ${d === division ? "bg-indigo-frame text-white" : "hover:bg-hover"}`}
               >
-                {d}
+                <Romaji text={d} kind="division" />
               </Link>
             ))}
           </div>

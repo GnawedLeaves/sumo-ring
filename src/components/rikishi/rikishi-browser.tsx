@@ -8,6 +8,11 @@ import { RANK_JP } from "@/lib/rank";
 import { useInfiniteScroll } from "@/lib/use-infinite-scroll";
 import { clearHistory, historySnapshot, pushHistory, serverHistorySnapshot, subscribeHistory } from "@/lib/search-history";
 import type { RikishiIndexEntry } from "@/lib/sumo-data";
+import { Romaji } from "@/components/jp";
+import { Portrait } from "@/components/portrait";
+
+/** List rows carry the Hygraph portrait URL when one exists. */
+type Row = RikishiIndexEntry & { portrait?: string };
 
 type Status = "active" | "inactive";
 const PAGE = 40;
@@ -182,7 +187,8 @@ function SearchBox({ query, setQuery, onSubmit }: { query: string; setQuery: (q:
                       <strong>{r.en}</strong> <span className="font-jp text-body-sm">{r.jp.split(" ")[0]}</span>
                     </span>
                     <span className="text-caption text-ink-soft">
-                      {r.rank || "—"} · {r.heya || "—"} {r.active ? "" : "· retired"}
+                      {r.rank ? <Romaji text={r.rank} kind="rank" /> : "—"} · {r.heya ? <Romaji text={r.heya} kind="heya" /> : "—"}{" "}
+                      {r.active ? "" : "· retired"}
                     </span>
                   </button>
                 </li>
@@ -196,7 +202,7 @@ function SearchBox({ query, setQuery, onSubmit }: { query: string; setQuery: (q:
 }
 
 function RikishiList({ status, filter }: { status: Status; filter: string }) {
-  const [rows, setRows] = useState<RikishiIndexEntry[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -213,7 +219,7 @@ function RikishiList({ status, filter }: { status: Status; filter: string }) {
       if (filter) params.set("q", filter);
       const res = await fetch(`/api/rikishi/list?${params}`);
       if (!res.ok) throw new Error(`Rikishi list request failed (${res.status})`);
-      const data = (await res.json()) as { total: number; records: RikishiIndexEntry[] };
+      const data = (await res.json()) as { total: number; records: Row[] };
       setRows((r) => [...r, ...data.records]);
       setTotal(data.total);
       setError(false);
@@ -229,7 +235,7 @@ function RikishiList({ status, filter }: { status: Status; filter: string }) {
   const sentinel = useInfiniteScroll(loadMore, !done && !error && !loading);
 
   // Group consecutive rows by rank tier (rows arrive already sorted by rank).
-  const groups: { tier: string; rows: RikishiIndexEntry[] }[] = [];
+  const groups: { tier: string; rows: Row[] }[] = [];
   for (const r of rows) {
     const last = groups.at(-1);
     const label = r.tier === "Unranked" ? "Lower divisions" : r.tier;
@@ -245,18 +251,30 @@ function RikishiList({ status, filter }: { status: Status; filter: string }) {
         <section key={`${g.tier}-${i}`} className="flex flex-col gap-5">
           <h2 className="flex items-baseline gap-3 font-display text-heading text-brand">
             {g.tier}
-            <span className="font-jp text-body text-ink-soft">{RANK_JP[g.tier] ?? ""}</span>
+            <span className="font-jp text-body text-ink-soft">{RANK_JP[g.tier] ?? (g.tier === "Lower divisions" ? "幕下以下" : "")}</span>
           </h2>
-          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Gallery cards: square portrait edge-to-edge, big English shikona, smaller Japanese below */}
+          <ul className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {g.rows.map((r) => (
-              <li key={r.id}>
-                <Link href={`/rikishi/${r.id}`} className="flex h-full flex-col gap-1 rounded-card border border-line bg-surface p-5 hover:bg-hover">
-                  <span className="font-display text-subheading font-bold leading-tight tracking-tight text-brand">{r.en}</span>
-                  <span className="font-jp text-body-sm">{r.jp.split(" ")[0]}</span>
-                  <span className="mt-2 text-body-sm">{r.rank || "Unranked"}</span>
-                  <span className="text-caption text-ink-soft">
-                    {r.heya || "—"}
-                    {!r.active && r.intai ? ` · retired ${r.intai.slice(0, 4)}` : ""}
+              <li key={r.id} className="min-w-0">
+                <Link href={`/rikishi/${r.id}`} className="group flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface hover:bg-hover">
+                  <Portrait id={r.id} en={r.en} jp={r.jp} src={r.portrait} size="fill" />
+                  <span className="flex flex-1 flex-col gap-1 border-t border-line p-3 sm:p-4">
+                    <span className="break-words font-display text-subheading font-bold leading-none tracking-tight text-brand group-hover:underline sm:text-heading">
+                      {r.en}
+                    </span>
+                    {r.jp && (
+                      <span lang="ja" className="font-jp text-body-sm text-ink-soft">
+                        {r.jp.split(" ")[0]}
+                      </span>
+                    )}
+                    <span className="mt-2 text-caption sm:text-body-sm">
+                      {r.rank ? <Romaji text={r.rank} kind="rank" /> : "Unranked"}
+                    </span>
+                    <span className="text-caption text-ink-soft">
+                      {r.heya ? <Romaji text={r.heya} kind="heya" /> : "—"}
+                      {!r.active && r.intai ? ` · retired ${r.intai.slice(0, 4)}` : ""}
+                    </span>
                   </span>
                 </Link>
               </li>

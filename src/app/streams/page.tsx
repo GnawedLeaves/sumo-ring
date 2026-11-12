@@ -8,9 +8,10 @@ import { LiveIndicator } from "@/components/live-indicator";
 import { VideoPlayer } from "@/components/video-player";
 import { isAdmin } from "@/lib/auth/session";
 import { bashoName } from "@/lib/basho";
-import { getStreams } from "@/lib/content";
+import { getStreams, store } from "@/lib/content";
 import { boutId } from "@/lib/format";
 import { getLiveContext, getTodaysBouts } from "@/lib/live";
+import { Romaji } from "@/components/jp";
 
 export const metadata: Metadata = { title: "Streams · Sumo Hub" };
 
@@ -88,7 +89,12 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
 async function AdminStreams() {
   if (!(await isAdmin())) return null;
   const streams = await getStreams();
-  return <StreamManager streams={streams} />;
+  // getStreams() swallows errors for viewers; admins need to see why saving will fail (e.g. missing Hygraph model).
+  const setupError = await store
+    .listStreams()
+    .then(() => null)
+    .catch((e: unknown) => (e instanceof Error ? e.message : "Content store unavailable"));
+  return <StreamManager streams={streams} setupError={setupError} />;
 }
 
 async function LiveSidebar() {
@@ -111,11 +117,11 @@ async function LiveSidebar() {
     <div className="flex flex-col gap-4">
       <AutoRefresh seconds={30} />
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-subheading text-brand">On the dohyō</h2>
+        <h2 className="font-display text-subheading text-brand">On the dohyō <span lang="ja" className="font-jp text-body font-normal">土俵</span></h2>
         {current?.status === "up-now" ? (
           <span className="flex items-center gap-2">
             <LiveIndicator />
-            <span className="badge">{current.division.toUpperCase()}</span>
+            <span className="badge"><Romaji text={current.division.toUpperCase()} kind="division" /></span>
           </span>
         ) : (
           <span className="text-caption text-ink-soft">Day {ctx.day}</span>
@@ -133,7 +139,7 @@ async function LiveSidebar() {
             <BoutDetail boutId={boutId(current.bout)} live compact />
           </Suspense>
           <Link href={`/basho?bout=${boutId(current.bout)}`} className="link-accent self-start border-electric-teal text-body-sm">
-            Full torikumi
+            Full torikumi <span lang="ja" className="font-jp">取組</span>
           </Link>
         </>
       )}

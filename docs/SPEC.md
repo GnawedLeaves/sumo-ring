@@ -81,7 +81,7 @@ Next.js (App Router) app for following professional sumo: live streams, basho re
 | 3.1 / 3.3 Current basho | Done — hero, Makuuchi/Juryo sidebar, bout detail; falls back to latest winners |
 | 3.2 History + basho detail | Done |
 | 4 Rikishi list / search / infinite scroll / detail | Done (detail = lists/tables; charts TBD) |
-| 5 News | Read side done (list, tags, archive >90 days, article). **Scrape + translate job not built yet** |
+| 5 News | Done: Nikkan Sports feed → Claude-written English briefs (own words, link to source) via `/api/cron/news` on a Render Cron Job. Needs `ANTHROPIC_API_KEY`, `CRON_SECRET`, Hygraph `NewsArticle` model |
 | 6 Calendar | Done |
 
 ## Open items

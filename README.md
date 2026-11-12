@@ -51,3 +51,18 @@ scripts/set-admin.mjs    grant the admin claim
 Run as a long-lived Node web service (`npm run build` / `npm start`) — the in-memory `use cache` store
 then persists between requests, which keeps load on the Sumo API low. The retired-rikishi index takes
 ~20s to build once a week (first visit to the Inactive tab or first search after a deploy).
+
+## News ingest
+
+`GET /api/cron/news` reads the Japanese sumo feeds in `src/lib/news/feeds.ts` (currently Nikkan Sports),
+skips items already stored, and has Claude (`claude-opus-5-5`, low effort, structured JSON output) write a
+short **original English brief** for up to 5 new items per run, saved to Hygraph (`NewsArticle`) with a link
+to the source. It summarises in its own words rather than republishing full translations of copyrighted articles.
+
+- Needs `ANTHROPIC_API_KEY`, `CRON_SECRET`, and the `NewsArticle` model in Hygraph (docs/HYGRAPH.md).
+- Requests must send `Authorization: Bearer $CRON_SECRET`. Add `?dry=1` to see what would be summarised
+  without calling Claude or writing anything.
+- **Schedule on Render:** create a Cron Job (e.g. `0 * * * *`, hourly) with the command
+  `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-app>.onrender.com/api/cron/news`
+  and set `CRON_SECRET` on both the web service and the cron job.
+- Articles older than 90 days move to the News archive automatically.

@@ -9,6 +9,7 @@ import { getClips, getPortraitMap } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
 import type { Match } from "@/lib/sumo-api";
+import { Romaji } from "@/components/jp";
 
 type Props = {
   boutId: string;
@@ -57,7 +58,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-caption font-bold uppercase tracking-wide text-ink-soft">
           {bashoName(b.bashoId)} · Day {b.day}
-          {bout ? ` · ${bout.division}` : ""}
+          {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
         </p>
         {!compact && (
           <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
@@ -84,13 +85,13 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
                 {s.r?.shikonaEn ?? (i === 0 ? bout?.eastShikona : bout?.westShikona)}
               </Link>
               <span className="font-jp text-body-sm">{shikonaOnly(s.r?.shikonaJp)}</span>
-              <span className="text-caption text-ink-soft">{s.rank}</span>
+              <span className="text-caption text-ink-soft"><Romaji text={s.rank} kind="rank" /></span>
               <span className="text-body-sm">
                 Basho <strong>{s.rec}</strong>
               </span>
               {decided && (
                 <span className={`badge max-w-full break-words ${won ? "" : "bg-surface! text-ink! border border-line"}`}>
-                  {won ? `WIN · ${bout?.kimarite}` : "LOSS"}
+                  {won ? <>WIN · <Romaji text={bout?.kimarite} kind="kimarite" /></> : "LOSS"}
                 </span>
               )}
             </div>
@@ -129,14 +130,14 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         <table className="w-full table-fixed border-collapse break-words text-body-sm">
           <tbody>
             {[
-              ["Heya", e.r?.heya, w.r?.heya],
+              ["Heya", <Romaji key="e" text={e.r?.heya} kind="heya" />, <Romaji key="w" text={w.r?.heya} kind="heya" />],
               ["Age", ageFrom(e.r?.birthDate), ageFrom(w.r?.birthDate)],
               ["Height", e.r?.height && `${e.r.height} cm`, w.r?.height && `${w.r.height} cm`],
               ["Weight", e.r?.weight && `${e.r.weight} kg`, w.r?.weight && `${w.r.weight} kg`],
               ["Career", e.stats && record(e.stats.totalWins, e.stats.totalLosses), w.stats && record(w.stats.totalWins, w.stats.totalLosses)],
               ["Win rate", e.stats && pct(e.stats.totalWins, e.stats.totalWins + e.stats.totalLosses), w.stats && pct(w.stats.totalWins, w.stats.totalWins + w.stats.totalLosses)],
               ["Makuuchi yūshō", e.stats?.yushoByDivision?.Makuuchi ?? 0, w.stats?.yushoByDivision?.Makuuchi ?? 0],
-              ["Top kimarite", e.profile.kimariteWins[0]?.[0], w.profile.kimariteWins[0]?.[0]],
+              ["Top kimarite", <Romaji key="e" text={e.profile.kimariteWins[0]?.[0]} kind="kimarite" />, <Romaji key="w" text={w.profile.kimariteWins[0]?.[0]} kind="kimarite" />],
             ].map(([label, a, c]) => (
               <tr key={String(label)} className="border-t border-line">
                 <td className="py-2 font-bold">{a ?? "—"}</td>
@@ -162,7 +163,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
                   <RikishiName en={m.winnerEn} jp={m.winnerJp || (m.winnerId === b.eastId ? e.r?.shikonaJp : w.r?.shikonaJp)} />
                 </span>
                 {/* Wraps under the name on narrow widths and in the sidebar */}
-                <span className={`text-ink-soft ${compact ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1 sm:text-right"}`}>{m.kimarite}</span>
+                <span className={`text-ink-soft ${compact ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1 sm:text-right"}`}><Romaji text={m.kimarite} kind="kimarite" /></span>
               </li>
             ))}
           </ul>
@@ -190,7 +191,7 @@ function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [strin
             .sort((a, b) => b[1] - a[1])
             .map(([k, n]) => (
               <li key={k}>
-                {k} <strong>×{n}</strong>
+                <Romaji text={k} kind="kimarite" /> <strong>×{n}</strong>
               </li>
             ))}
         </ul>

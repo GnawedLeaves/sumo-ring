@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     // Rikishi portraits uploaded to Hygraph
     remotePatterns: [{ protocol: "https", hostname: "**.graphassets.com" }],
   },
+  // Let phones on the same Wi-Fi use the dev server (http://<your-PC-IP>:3000). Without this, Next.js blocks
+  // dev-only resources (hot reload, dev chunks) for non-localhost origins. Dev only; ignored in production.
+  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*"],
   // The Basho page is the landing page.
   async redirects() {
     return [{ source: "/", destination: "/basho", permanent: false }];

@@ -13,6 +13,7 @@ import { getClips, getPortraitMap } from "@/lib/content";
 import { shikonaOnly } from "@/lib/format";
 import { getLiveContext } from "@/lib/live";
 import { getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
+import { Romaji } from "@/components/jp";
 
 const DAYS = Array.from({ length: 15 }, (_, i) => i + 1);
 
@@ -73,7 +74,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
             <ul className="mt-3 flex flex-col gap-2 text-body-sm">
               {(summary.specialPrizes ?? []).map((p) => (
                 <li key={`${p.type}-${p.rikishiId}`} className="flex justify-between gap-2">
-                  <span className="badge">{p.type}</span>
+                  <span className="badge"><Romaji text={p.type} kind="sansho" /></span>
                   <Link href={`/rikishi/${p.rikishiId}`} className="font-bold hover:underline">
                     <RikishiName en={p.shikonaEn} jp={p.shikonaJp} />
                   </Link>
@@ -81,11 +82,11 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
               ))}
               {(summary.specialPrizes ?? []).length === 0 && <li className="text-ink-soft">No sanshō awarded{summary.winner ? "" : " yet"}.</li>}
             </ul>
-            <h3 className="mt-5 text-caption uppercase text-ink-soft">Yūshō by division</h3>
+            <h3 className="mt-5 text-caption uppercase text-ink-soft">Yūshō 優勝 by division</h3>
             <ul className="mt-2 flex flex-col gap-1 text-body-sm">
               {(summary.yusho ?? []).map((y) => (
                 <li key={y.type} className="flex justify-between gap-2">
-                  <span className="text-ink-soft">{y.type}</span>
+                  <span className="text-ink-soft"><Romaji text={y.type} kind="division" /></span>
                   <Link href={`/rikishi/${y.rikishiId}`} className="font-bold hover:underline">
                     {y.shikonaEn.split(" ")[0]} <span className="font-jp font-normal">{shikonaOnly(y.shikonaJp)}</span>
                   </Link>
@@ -124,7 +125,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
                 scroll={false}
                 className={`flex-1 py-3 text-center text-body-sm font-bold ${d === division ? "bg-indigo-frame text-white" : "hover:bg-hover"}`}
               >
-                {d}
+                <Romaji text={d} kind="division" />
               </Link>
             ))}
           </div>

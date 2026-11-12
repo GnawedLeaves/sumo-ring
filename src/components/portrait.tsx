@@ -8,7 +8,9 @@ const SIZES = {
   md: { box: "h-24 w-24", disc: "h-16 w-16 text-subheading", px: 96 },
   // lg/xl shrink on phones so two portraits + "vs" fit side by side in ~340px
   lg: { box: "h-24 w-24 sm:h-40 sm:w-40", disc: "h-16 w-16 text-subheading sm:h-28 sm:w-28 sm:text-heading", px: 160 },
-  xl: { box: "h-40 w-40 sm:h-56 sm:w-56 md:h-72 md:w-72", disc: "h-28 w-28 text-heading sm:h-40 sm:w-40 sm:text-heading-lg md:h-52 md:w-52", px: 288 },
+  /** Fills its container's width as a square — for grid cards. */
+  fill: { box: "aspect-square w-full", disc: "aspect-square w-3/5 text-heading-lg sm:text-display", px: 320 },
+  xl: { box:"h-40 w-40 sm:h-56 sm:w-56 md:h-72 md:w-72", disc: "h-28 w-28 text-heading sm:h-40 sm:w-40 sm:text-heading-lg md:h-52 md:w-52", px: 288 },
 } as const;
 
 /**
@@ -32,7 +34,7 @@ export function Portrait({
   if (src) {
     return (
       <div className={`${s.box} relative shrink-0 overflow-hidden bg-white`}>
-        <Image src={src} alt={en} fill sizes={`${s.px}px`} className="object-cover object-top" />
+        <Image src={src} alt={en} fill sizes={size === "fill" ? "(min-width: 1024px) 280px, 50vw" : `${s.px}px`} className="object-cover object-top" />
       </div>
     );
   }

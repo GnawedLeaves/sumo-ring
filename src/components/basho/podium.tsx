@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Portrait } from "@/components/portrait";
 import { record, shikonaOnly } from "@/lib/format";
 import type { BashoSummary } from "@/lib/sumo-data";
+import { Romaji } from "@/components/jp";
 
 /** Yūshō winner + three runners-up (or the four leaders while a basho is in progress). */
 export function Podium({ summary, portraits, size = "lg" }: { summary: BashoSummary; portraits: Record<number, string>; size?: "lg" | "md" }) {
@@ -14,7 +15,7 @@ export function Podium({ summary, portraits, size = "lg" }: { summary: BashoSumm
       <Link href={`/rikishi/${lead.rikishiID}`} className="flex min-w-0 items-end gap-4 sm:gap-5">
         <Portrait id={lead.rikishiID} en={lead.shikonaEn} jp={lead.shikonaJp} src={portraits[lead.rikishiID]} size={big ? "xl" : "lg"} />
         <span className="flex min-w-0 flex-col gap-1">
-          <span className="badge self-start">{summary.winner ? "YŪSHŌ" : "LEADER"}</span>
+          <span className="badge self-start">{summary.winner ? "YŪSHŌ 優勝" : "LEADER"}</span>
           <span
             className={`break-words font-display font-bold leading-none tracking-tight ${big ? "text-subheading sm:text-heading md:text-heading-lg" : "text-subheading sm:text-heading"}`}
           >
@@ -22,7 +23,7 @@ export function Podium({ summary, portraits, size = "lg" }: { summary: BashoSumm
           </span>
           <span className="font-jp text-body">{shikonaOnly(lead.shikonaJp)}</span>
           <span className="text-body-sm">
-            {lead.rank} · <strong>{record(lead.wins, lead.losses, lead.absences)}</strong>
+            <Romaji text={lead.rank} kind="rank" /> · <strong>{record(lead.wins, lead.losses, lead.absences)}</strong>
           </span>
         </span>
       </Link>

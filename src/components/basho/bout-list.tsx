@@ -3,6 +3,7 @@ import { RikishiName } from "@/components/rikishi-name";
 import { boutId, record } from "@/lib/format";
 import { shortRank } from "@/lib/rank";
 import type { Match } from "@/lib/sumo-api";
+import { Romaji } from "@/components/jp";
 
 type Records = Record<number, { wins: number; losses: number; absences: number; jp?: string }>;
 
@@ -60,7 +61,7 @@ export function BoutList({
               <span className="flex items-center justify-between text-caption text-ink-soft">
                 #{m.matchNo}
                 {isNow && <span className="badge">NOW</span>}
-                {decided && <span>{m.kimarite}</span>}
+                {decided && <span><Romaji text={m.kimarite} kind="kimarite" /></span>}
               </span>
               {side(m.eastId, m.eastShikona, m.eastRank)}
               {side(m.westId, m.westShikona, m.westRank)}

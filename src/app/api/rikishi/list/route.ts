@@ -1,6 +1,7 @@
 // Paged, rank-sorted rikishi list for infinite scroll. Served from the cached roster index so
 // scrolling never hits the Sumo API directly.
 import type { NextRequest } from "next/server";
+import { getPortraitMap } from "@/lib/content";
 import { getActiveIndex, getRetiredIndex, searchIndex } from "@/lib/sumo-data";
 
 export async function GET(request: NextRequest) {
@@ -10,7 +11,8 @@ export async function GET(request: NextRequest) {
   const skip = Math.max(0, Number(sp.get("skip")) || 0);
   const limit = Math.min(100, Math.max(1, Number(sp.get("limit")) || 40));
 
-  const index = status === "active" ? await getActiveIndex() : await getRetiredIndex();
+  const [index, portraits] = await Promise.all([status === "active" ? getActiveIndex() : getRetiredIndex(), getPortraitMap()]);
   const rows = q ? searchIndex(index, q) : index;
-  return Response.json({ total: rows.length, skip, records: rows.slice(skip, skip + limit) });
+  const records = rows.slice(skip, skip + limit).map((r) => ({ ...r, portrait: portraits[r.id] }));
+  return Response.json({ total: rows.length, skip, records });
 }

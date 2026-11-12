@@ -7,7 +7,7 @@ import type { Stream } from "@/lib/content/types";
 const input = "w-full border border-line bg-surface px-3 py-2 text-body-sm";
 
 /** Admin-only editor for the stream list: add, rename/edit, delete, reorder. */
-export function StreamManager({ streams }: { streams: Stream[] }) {
+export function StreamManager({ streams, setupError }: { streams: Stream[]; setupError?: string | null }) {
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -36,6 +36,16 @@ export function StreamManager({ streams }: { streams: Stream[] }) {
           + Add stream
         </button>
       </div>
+      {setupError && (
+        <div className="border-2 border-crimson-spotlight p-3 text-body-sm">
+          <p className="font-bold text-crimson-spotlight">Streams can&apos;t be saved yet.</p>
+          <p className="mt-1">
+            {/not defined in 'Query'|not defined/.test(setupError)
+              ? "Your Hygraph project is missing the Stream model. Create it with the fields in docs/HYGRAPH.md, then reload."
+              : setupError}
+          </p>
+        </div>
+      )}
       {error && <p className="text-body-sm text-crimson-spotlight">{error}</p>}
       {editing === "new" && <StreamForm onCancel={() => setEditing(null)} onSubmit={(f) => run(() => saveStream(f))} pending={pending} />}
       <ul className="divide-y divide-line border-y border-line">
