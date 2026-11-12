@@ -42,7 +42,7 @@ async function NewsList({ searchParams }: Pick<PageProps<"/news">, "searchParams
   if (all.length === 0) {
     return (
       <p className="mx-auto max-w-xl rounded-card border border-line bg-surface p-6 text-body-sm">
-        No articles yet. News is collected from Japanese sources and translated by a scheduled job — see docs/SPEC.md §5.
+        No articles yet. Headlines are collected from Japanese outlets and machine-translated by a scheduled job — see the README’s “News ingest” section.
       </p>
     );
   }
@@ -116,7 +116,9 @@ function ArticleCard({ article: a, lead }: { article: NewsArticle; lead: boolean
         </span>
         <span className={`font-display font-bold leading-tight tracking-tight text-brand ${lead ? "text-heading md:text-heading-lg" : "text-subheading"}`}>{a.title}</span>
         <span className="text-body-sm">{a.summary}</span>
-        <span className="mt-auto text-caption text-ink-soft">{formatDate(a.publishedAt)}</span>
+        <span className="mt-auto text-caption text-ink-soft">
+          {formatDate(a.publishedAt)} · {a.sources.length > 1 ? `${a.sources.length} outlets` : (a.sources[0]?.publisher ?? "")}
+        </span>
       </Link>
     </li>
   );

@@ -1,5 +1,5 @@
 // Scheduled news ingest. Call with `Authorization: Bearer $CRON_SECRET` (Render Cron Job, see README).
-// `?dry=1` lists what would be summarised without calling Claude or writing anything.
+// `?dry=1` lists the stories it would create (tags, sources) without calling DeepL or writing anything.
 import { revalidateTag } from "next/cache";
 import type { NextRequest } from "next/server";
 import { TAGS } from "@/lib/content";
@@ -14,6 +14,6 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const report = await ingestNews({ dryRun: sp.get("dry") === "1", limit: Number(sp.get("limit")) || undefined });
-  if (report.created.length) revalidateTag(TAGS.news, "max");
+  if (report.created.length || report.sourcesAdded.length) revalidateTag(TAGS.news, "max");
   return Response.json(report, { status: report.errors.length && !report.created.length && !report.dryRun ? 502 : 200 });
 }

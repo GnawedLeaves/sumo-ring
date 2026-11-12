@@ -88,6 +88,12 @@ export const localStore: ContentStore = {
     await save(data);
     return article;
   },
+  async updateNewsSources(id, sources) {
+    const data = await load();
+    const article = data.news.find((n) => n.id === id);
+    if (article) article.sources = sources;
+    await save(data);
+  },
 
   async listPortraits() {
     return (await load()).portraits;

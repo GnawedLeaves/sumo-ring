@@ -56,10 +56,10 @@ Max file size depends on your Hygraph plan.
 |---|---|---|
 | `slug` | Text | required, **unique** |
 | `title` | Text | required |
-| `summary` | Multi-line text | |
-| `body` | Multi-line text | paragraphs separated by blank lines |
+| `summary` | Multi-line text | translated lead |
+| `body` | Multi-line text | optional (empty for ingested news); paragraphs separated by blank lines |
 | `tags` | Text, **allow multiple values** | |
-| `sources` | JSON | `[{ "title": "…", "url": "…", "publisher": "…" }]` |
+| `sources` | JSON | `[{ "title": "<Japanese headline>", "url": "…", "publisher": "…" }]` — every outlet that covered the story |
 | `imageUrl` | Text | optional |
 | `publishedAt` | Date & time | original publication time; >90 days old is shown in the archive |
 

@@ -152,6 +152,12 @@ export const hygraphStore: ContentStore = {
     );
     return d.createNewsArticle;
   },
+  async updateNewsSources(id, sources) {
+    await gql(`mutation($id: ID!, $sources: Json!) { updateNewsArticle(where: { id: $id }, data: { sources: $sources }) { id } }`, {
+      id,
+      sources,
+    });
+  },
 
   async listPortraits(): Promise<Portrait[]> {
     const d = await gql<{ rikishiPortraits: { rikishiId: number; image?: { url: string } | null }[] }>(

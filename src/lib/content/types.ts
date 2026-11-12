@@ -73,6 +73,8 @@ export interface ContentStore {
   listNews(): Promise<NewsArticle[]>;
   getNews(slug: string): Promise<NewsArticle | null>;
   createNews(input: Omit<NewsArticle, "id">): Promise<NewsArticle>;
+  /** Replaces an article's source list (the ingest job adds outlets that reported the same story later). */
+  updateNewsSources(id: string, sources: NewsSource[]): Promise<void>;
 
   listPortraits(): Promise<Portrait[]>;
 }

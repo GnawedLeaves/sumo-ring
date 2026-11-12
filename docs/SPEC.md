@@ -81,7 +81,7 @@ Next.js (App Router) app for following professional sumo: live streams, basho re
 | 3.1 / 3.3 Current basho | Done — hero, Makuuchi/Juryo sidebar, bout detail; falls back to latest winners |
 | 3.2 History + basho detail | Done |
 | 4 Rikishi list / search / infinite scroll / detail | Done (detail = lists/tables; charts TBD) |
-| 5 News | Done: Nikkan Sports feed → Claude-written English briefs (own words, link to source) via `/api/cron/news` on a Render Cron Job. Needs `ANTHROPIC_API_KEY`, `CRON_SECRET`, Hygraph `NewsArticle` model |
+| 5 News | Done (no AI): Nikkan Sports + Google News (大相撲) + Yahoo Tokyo Sports/Sponichi feeds → same story grouped across outlets → rule-based tags → DeepL-translated headline + short lead, linking to sources, via `/api/cron/news` on a Render Cron Job. Needs `DEEPL_API_KEY`, `CRON_SECRET`, Hygraph `NewsArticle` model |
 | 6 Calendar | Done |
 
 ## Open items
@@ -90,4 +90,3 @@ Next.js (App Router) app for following professional sumo: live streams, basho re
 - History page extra details (from owner).
 - Rikishi card "most important details" — to be confirmed.
 - Source for rikishi portraits (API has none — likely NSK site images or Hygraph uploads).
-- Japanese news sources and translation provider.

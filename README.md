@@ -54,14 +54,26 @@ then persists between requests, which keeps load on the Sumo API low. The retire
 
 ## News ingest
 
-`GET /api/cron/news` reads the Japanese sumo feeds in `src/lib/news/feeds.ts` (currently Nikkan Sports),
-skips items already stored, and has Claude (`claude-opus-5-5`, low effort, structured JSON output) write a
-short **original English brief** for up to 5 new items per run, saved to Hygraph (`NewsArticle`) with a link
-to the source. It summarises in its own words rather than republishing full translations of copyrighted articles.
+`GET /api/cron/news` builds the news page without any AI. Each run it:
 
-- Needs `ANTHROPIC_API_KEY`, `CRON_SECRET`, and the `NewsArticle` model in Hygraph (docs/HYGRAPH.md).
-- Requests must send `Authorization: Bearer $CRON_SECRET`. Add `?dry=1` to see what would be summarised
-  without calling Claude or writing anything.
+1. **Reads feeds** (`src/lib/news/feeds.ts`): Nikkan Sports' sumo Atom feed, a Google News search for 大相撲
+   (last 7 days, ~100 headlines across Jiji, NHK, Sponichi, Hochi, Yomiuri…), and Yahoo! News feeds for
+   Tokyo Sports and Sponichi (filtered to sumo by keyword). Feeds only — article pages are never crawled.
+2. **Groups the same story** across outlets (`cluster.ts`): similar headlines, the same two rikishi on the same
+   day, or the same rikishi + event (金星, 優勝, 休場, 引退…) on the same day. One article, several source links.
+   Outlets that report a stored story later are added to its sources.
+3. **Tags by rules** (`tags.ts`): topic keywords (休場 → Injury, 優勝 → Yusho race…) plus the rikishi named,
+   matched against the Sumo API's kanji shikona (old/new kanji forms like 琴櫻/琴桜 are folded together).
+4. **Translates with DeepL** (`translate.ts`): the headline and a ~150-character lead only. Shikona are swapped
+   for their official romanisation first, so 豊昇龍 becomes "Hoshoryu" rather than a literal reading.
+   Readers follow "Read the full story" to the outlet — we don't republish whole translated articles.
+
+- Needs `DEEPL_API_KEY` ([free API key](https://www.deepl.com/pro-api): 500,000 characters/month; free keys end
+  in `:fx`), `CRON_SECRET`, and the `NewsArticle` model in Hygraph (docs/HYGRAPH.md).
+- Usage: ~200 Japanese characters per new story, max 30 stories per run. A busy basho day is ~40–60 new
+  stories, so roughly 250–350k characters a month — inside the free tier.
+- Requests must send `Authorization: Bearer $CRON_SECRET`. Add `?dry=1` to list the stories it would create,
+  with tags and every grouped headline, without calling DeepL or writing anything.
 - **Schedule on Render:** create a Cron Job (e.g. `0 * * * *`, hourly) with the command
   `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-app>.onrender.com/api/cron/news`
   and set `CRON_SECRET` on both the web service and the cron job.
