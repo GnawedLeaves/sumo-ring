@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Profile · Sumo Hub" };
 export default function Page() {
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading-lg text-brand">Profile</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Profile</h1>
       <Suspense fallback={<p className="text-center text-body-sm">Loading…</p>}>
         <Profile />
       </Suspense>

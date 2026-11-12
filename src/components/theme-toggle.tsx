@@ -42,7 +42,7 @@ export function ThemeToggle() {
       aria-label={`Theme: ${LABEL[theme]}. Switch to ${LABEL[next]}`}
       title={`Theme: ${LABEL[theme]}`}
     >
-      <span aria-hidden>{ICON[theme]}</span> {LABEL[theme]}
+      <span aria-hidden>{ICON[theme]}</span> <span className="hidden sm:inline">{LABEL[theme]}</span>
     </button>
   );
 }

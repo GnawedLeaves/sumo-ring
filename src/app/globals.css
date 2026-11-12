@@ -90,11 +90,14 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: 1.36;
+  /* Long shikona/kimarite never push the layout wider than a phone screen. */
+  overflow-wrap: break-word;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @layer components {
   .page {
-    @apply mx-auto w-full max-w-[1200px] px-4 py-16 md:px-6;
+    @apply mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-16;
   }
   .frame {
     @apply border border-line;

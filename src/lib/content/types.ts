@@ -67,12 +67,16 @@ export interface ContentStore {
   deleteClip(id: string): Promise<void>;
   /** Returns a presigned upload target for a clip video, or null when uploads aren't supported. */
   createUpload(fileName: string): Promise<UploadTarget | null>;
+  /** Processing state of an uploaded asset; its URL only serves once status is "complete". */
+  getUploadStatus(assetId: string): Promise<UploadStatus | null>;
 
   listNews(): Promise<NewsArticle[]>;
   getNews(slug: string): Promise<NewsArticle | null>;
 
   listPortraits(): Promise<Portrait[]>;
 }
+
+export type UploadStatus = { status: "pending" | "complete" | "error"; url: string; error?: string };
 
 export type UploadTarget = {
   assetId: string;

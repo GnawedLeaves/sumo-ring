@@ -24,9 +24,11 @@ export function BoutList({
   hrefFor: (id: string) => string;
 }) {
   if (!bouts.length) return <p className="p-4 text-body-sm">No bouts published for this day yet.</p>;
+  // Last bout of the day (the musubi-no-ichiban, top-ranked rikishi) first.
+  const ordered = [...bouts].sort((a, b) => b.matchNo - a.matchNo);
   return (
     <ol className="divide-y divide-line">
-      {bouts.map((m) => {
+      {ordered.map((m) => {
         const id = boutId(m);
         const decided = Boolean(m.winnerId);
         const isSel = id === selected;

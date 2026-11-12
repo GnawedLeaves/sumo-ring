@@ -6,8 +6,9 @@ const BLOCKS = ["bg-cobalt-stage", "bg-tangerine-pop", "bg-plum-velvet", "bg-ros
 const SIZES = {
   sm: { box: "h-12 w-12", disc: "h-8 w-8 text-body-sm", px: 48 },
   md: { box: "h-24 w-24", disc: "h-16 w-16 text-subheading", px: 96 },
-  lg: { box: "h-40 w-40", disc: "h-28 w-28 text-heading", px: 160 },
-  xl: { box: "h-56 w-56 md:h-72 md:w-72", disc: "h-40 w-40 md:h-52 md:w-52 text-heading-lg", px: 288 },
+  // lg/xl shrink on phones so two portraits + "vs" fit side by side in ~340px
+  lg: { box: "h-24 w-24 sm:h-40 sm:w-40", disc: "h-16 w-16 text-subheading sm:h-28 sm:w-28 sm:text-heading", px: 160 },
+  xl: { box: "h-40 w-40 sm:h-56 sm:w-56 md:h-72 md:w-72", disc: "h-28 w-28 text-heading sm:h-40 sm:w-40 sm:text-heading-lg md:h-52 md:w-52", px: 288 },
 } as const;
 
 /**

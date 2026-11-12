@@ -6,6 +6,7 @@ import { BashoTabs } from "@/components/basho/basho-tabs";
 import { BoutList } from "@/components/basho/bout-list";
 import { Podium } from "@/components/basho/podium";
 import { BoutDetail } from "@/components/bout/bout-detail";
+import { LiveIndicator } from "@/components/live-indicator";
 import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName } from "@/lib/basho";
@@ -19,7 +20,7 @@ export const metadata: Metadata = { title: "Basho · Sumo Hub" };
 export default function Page({ searchParams }: PageProps<"/basho">) {
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading-lg text-brand">Basho</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho</h1>
       <BashoTabs active="current" />
       <Suspense fallback={<p className="text-body-sm">Loading today&apos;s torikumi…</p>}>
         <CurrentBasho searchParams={searchParams} />
@@ -68,30 +69,36 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
 
       {/* Hero: the bout on the dohyō right now */}
       <div className="flex flex-col gap-2">
-        <p className="text-caption font-bold uppercase tracking-wide text-ink-soft">
-          {bashoName(ctx.bashoId)} · {bashoInfo(ctx.bashoId)?.jp} · Day {ctx.day}
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption font-bold uppercase tracking-wide text-ink-soft">
+          {current?.status === "up-now" && <LiveIndicator />}
+          <span>
+            {bashoName(ctx.bashoId)} · {bashoInfo(ctx.bashoId)?.jp} · Day {ctx.day}
+          </span>
         </p>
         {current?.status === "up-now" ? (
-          <Link href={href({ bout: boutId(current.bout), div: current.division })} scroll={false} className="block bg-indigo-frame p-6 text-white md:p-10">
-            <span className="badge">ON THE DOHYŌ · {current.division.toUpperCase()}</span>
-            <span className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <Link href={href({ bout: boutId(current.bout), div: current.division })} scroll={false} className="block bg-indigo-frame p-4 text-white sm:p-6 md:p-10">
+            <span className="flex flex-wrap items-center gap-2">
+              <LiveIndicator />
+              <span className="badge">ON THE DOHYŌ · {current.division.toUpperCase()}</span>
+            </span>
+            <span className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
               {[
                 { id: current.bout.eastId, en: current.bout.eastShikona, rank: current.bout.eastRank },
                 { id: current.bout.westId, en: current.bout.westShikona, rank: current.bout.westRank },
               ].map((s, i) => {
                 const rec = records[s.id];
                 return (
-                  <span key={s.id} className={`flex flex-col gap-2 ${i ? "col-start-3 items-end text-right" : "items-start"}`}>
+                  <span key={s.id} className={`flex min-w-0 flex-col gap-2 ${i ? "col-start-3 items-end text-right" : "items-start"}`}>
                     <Portrait id={s.id} en={s.en} jp={rec?.jp} src={portraits[s.id]} size="lg" />
-                    <span className="font-display text-heading font-bold leading-none md:text-heading-lg">
+                    <span className="max-w-full break-words font-display text-subheading font-bold leading-tight sm:text-heading md:text-heading-lg md:leading-none">
                       <RikishiName en={s.en} jp={rec?.jp} stacked />
                     </span>
-                    <span className="text-body-sm">{s.rank}</span>
+                    <span className="text-caption sm:text-body-sm">{s.rank}</span>
                     {rec && <span className="font-display text-subheading">{record(rec.wins, rec.losses, rec.absences)}</span>}
                   </span>
                 );
               })}
-              <span className="col-start-2 row-start-1 font-display text-heading italic">vs</span>
+              <span className="col-start-2 row-start-1 font-display text-subheading italic sm:text-heading">vs</span>
             </span>
           </Link>
         ) : (
@@ -102,7 +109,8 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
       </div>
 
       <div className="grid gap-8 md:grid-cols-[320px_1fr]">
-        <aside className="h-fit border border-line bg-canvas md:sticky md:top-4">
+        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page */}
+        <aside className="flex h-[55dvh] flex-col self-start border border-line bg-canvas md:sticky md:top-20 md:h-[calc(100dvh-6rem)]">
           <div className="flex border-b border-line">
             {(["Makuuchi", "Juryo"] as const).map((d) => (
               <Link
@@ -115,7 +123,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
               </Link>
             ))}
           </div>
-          <div className="max-h-[70vh] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} hrefFor={(id) => href({ bout: id })} />
           </div>
         </aside>

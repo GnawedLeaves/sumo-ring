@@ -23,7 +23,7 @@ export default async function Page() {
   const apiStarts = await getKnownStarts();
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading-lg text-brand">Calendar</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Calendar</h1>
       <BashoCalendar apiStarts={apiStarts} />
     </section>
   );

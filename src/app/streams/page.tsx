@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BoutDetail } from "@/components/bout/bout-detail";
 import { StreamManager } from "@/components/streams/stream-manager";
+import { LiveIndicator } from "@/components/live-indicator";
 import { VideoPlayer } from "@/components/video-player";
 import { isAdmin } from "@/lib/auth/session";
 import { bashoName } from "@/lib/basho";
@@ -15,17 +16,19 @@ export const metadata: Metadata = { title: "Streams · Sumo Hub" };
 
 export default function Page({ searchParams }: PageProps<"/streams">) {
   return (
-    <section className="mx-auto w-full max-w-[1400px] px-4 py-10 md:px-6">
+    <section className="mx-auto w-full max-w-[1400px] px-0 py-0 sm:px-4 sm:py-10 md:px-6">
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="flex min-w-0 flex-col gap-6">
           <Suspense fallback={<div className="aspect-video w-full bg-black" />}>
             <Player searchParams={searchParams} />
           </Suspense>
-          <Suspense fallback={null}>
-            <AdminStreams />
-          </Suspense>
+          <div className="px-4 sm:px-0">
+            <Suspense fallback={null}>
+              <AdminStreams />
+            </Suspense>
+          </div>
         </div>
-        <aside className="h-fit border border-line bg-canvas p-5 lg:sticky lg:top-4">
+        <aside className="mx-4 mb-6 h-fit min-w-0 border border-line bg-canvas p-4 sm:mx-0 sm:mb-0 sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <Suspense fallback={<p className="text-body-sm">Checking the dohyō…</p>}>
             <LiveSidebar />
           </Suspense>
@@ -50,12 +53,15 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
 
   return (
     <>
-      <VideoPlayer url={current.url} title={current.name} />
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-heading text-brand">{current.name}</h1>
+      {/* On phones the player sticks under the header so you can scroll the bout stats while watching. */}
+      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 bg-black sm:static">
+        <VideoPlayer url={current.url} title={current.name} />
+      </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 sm:px-0">
+        <h1 className="break-words font-display text-subheading text-brand sm:text-heading">{current.name}</h1>
         {current.note && <p className="text-body-sm text-ink-soft">{current.note}</p>}
       </div>
-      <ul className="grid grid-cols-2 gap-4 md:grid-cols-4" aria-label="Streams">
+      <ul className="grid grid-cols-2 gap-3 px-4 sm:gap-4 sm:px-0 md:grid-cols-4" aria-label="Streams">
         {streams.map((st) => {
           const active = st.id === current.id;
           return (
@@ -104,9 +110,16 @@ async function LiveSidebar() {
   return (
     <div className="flex flex-col gap-4">
       <AutoRefresh seconds={30} />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-subheading text-brand">On the dohyō</h2>
-        {current?.status === "up-now" && <span className="badge">{current.division.toUpperCase()}</span>}
+        {current?.status === "up-now" ? (
+          <span className="flex items-center gap-2">
+            <LiveIndicator />
+            <span className="badge">{current.division.toUpperCase()}</span>
+          </span>
+        ) : (
+          <span className="text-caption text-ink-soft">Day {ctx.day}</span>
+        )}
       </div>
       {!current ? (
         <p className="text-body-sm">

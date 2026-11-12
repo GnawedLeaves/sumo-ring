@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Basho history · Sumo Hub" };
 export default function Page() {
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading-lg text-brand">Basho</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho</h1>
       <BashoTabs active="history" />
       <Suspense fallback={<p className="text-body-sm">Loading past basho…</p>}>
         <History />

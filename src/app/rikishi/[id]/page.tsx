@@ -44,7 +44,7 @@ async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "param
           <Portrait id={r.id} en={r.shikonaEn} jp={r.shikonaJp} src={portraits[r.id]} size="xl" />
           <div className="flex flex-col gap-3">
             <span className="badge self-start">{r.intai ? "RETIRED" : r.currentRank ?? "ACTIVE"}</span>
-            <h1 className="font-display text-heading-lg font-bold md:text-display">{r.shikonaEn}</h1>
+            <h1 className="font-display text-heading sm:text-heading-lg font-bold md:text-display">{r.shikonaEn}</h1>
             <p className="font-jp text-heading">{r.shikonaJp}</p>
           </div>
         </div>
@@ -53,7 +53,7 @@ async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "param
       <div className="page flex flex-col gap-16">
         {/* Headline numbers */}
         {stats && (
-          <section className="grid grid-cols-2 gap-5 md:grid-cols-4">
+          <section className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4">
             {[
               ["Career record", record(stats.totalWins, stats.totalLosses, stats.totalAbsences)],
               ["Win rate", pct(stats.totalWins, bouts)],
@@ -64,9 +64,9 @@ async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "param
               ["Best technique", profile.kimariteWins[0]?.[0] ?? "—"],
               ["Bouts", stats.totalMatches],
             ].map(([label, value]) => (
-              <div key={String(label)} className="rounded-card border border-line bg-surface p-5">
+              <div key={String(label)} className="min-w-0 rounded-card border border-line bg-surface p-4 sm:p-5">
                 <p className="text-caption uppercase text-ink-soft">{label}</p>
-                <p className="mt-2 font-display text-heading font-bold text-brand">{value}</p>
+                <p className="mt-2 break-words font-display text-subheading font-bold text-brand sm:text-heading">{value}</p>
               </div>
             ))}
           </section>

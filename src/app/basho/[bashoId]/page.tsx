@@ -59,7 +59,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
       <header className="flex flex-col gap-8">
         <BashoPicker groups={bashoByYear(ctx)} current={live ? undefined : bashoId} />
         <div>
-          <h1 className="font-display text-heading-lg font-bold text-brand">
+          <h1 className="font-display text-heading sm:text-heading-lg font-bold text-brand">
             {bashoName(bashoId)} <span className="font-jp text-heading font-normal">{info?.jp}</span>
           </h1>
           <p className="mt-2 text-body-sm text-ink-soft">
@@ -98,7 +98,10 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
 
       {/* Day tabs | bouts | bout detail */}
       <div className="grid gap-6 md:grid-cols-[72px_280px_1fr]">
-        <nav aria-label="Day" className="flex gap-1 overflow-x-auto md:flex-col">
+        <nav
+          aria-label="Day"
+          className="flex gap-1 self-start overflow-x-auto md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:flex-col md:overflow-y-auto md:overflow-x-visible"
+        >
           {DAYS.map((d) => (
             <Link
               key={d}
@@ -111,7 +114,8 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
             </Link>
           ))}
         </nav>
-        <aside className="h-fit border border-line">
+        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page */}
+        <aside className="flex h-[55dvh] flex-col self-start border border-line md:sticky md:top-20 md:h-[calc(100dvh-6rem)]">
           <div className="flex border-b border-line">
             {(["Makuuchi", "Juryo"] as const).map((d) => (
               <Link
@@ -124,7 +128,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
               </Link>
             ))}
           </div>
-          <div className="max-h-[75vh] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <BoutList bouts={bouts} records={records} selected={selected} hrefFor={(id) => href({ bout: id })} />
           </div>
           {clipBouts.size > 0 && <p className="border-t border-line p-3 text-caption">{clipBouts.size} bout(s) in this basho have clips.</p>}

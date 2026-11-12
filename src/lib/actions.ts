@@ -2,7 +2,7 @@
 // Admin-only mutations. Every action re-checks the admin claim server-side — never trust the UI.
 import { updateTag } from "next/cache";
 import { requireAdmin } from "./auth/session";
-import { store, TAGS, type ClipInput, type Platform, type StreamInput } from "./content";
+import { store, TAGS, type Platform, type StreamInput } from "./content";
 import { detectPlatform } from "./embed";
 import { parseBoutId } from "./format";
 
@@ -60,37 +60,28 @@ export async function reorderStreams(ids: string[]): Promise<ActionResult> {
   }
 }
 
-const toSec = (v: FormDataEntryValue | null) => {
-  const s = String(v ?? "").trim();
-  if (!s) return undefined;
-  // accepts 754, 12:34 or 1:02:03
-  const parts = s.split(":").map(Number);
-  if (parts.some((n) => !Number.isFinite(n))) throw new Error(`Bad timestamp "${s}"`);
-  return parts.reduce((acc, n) => acc * 60 + n, 0);
-};
-
+/**
+ * Saves a clip whose video file was uploaded to Hygraph (see createClipUpload). The asset URL is read
+ * from Hygraph here rather than trusted from the browser.
+ */
 export async function saveClip(form: FormData): Promise<ActionResult> {
   try {
     await requireAdmin();
     const bout = parseBoutId(String(form.get("boutId") ?? ""));
     if (!bout) throw new Error("Unknown bout");
-    const videoUrl = String(form.get("videoUrl") ?? "").trim();
-    if (!/^https?:\/\//.test(videoUrl)) throw new Error("Add a video URL or upload a file");
-    const source = (String(form.get("source") ?? "") || detectPlatform(videoUrl) || "url") as ClipInput["source"];
-    const startSec = toSec(form.get("start"));
-    const endSec = toSec(form.get("end"));
-    if (startSec !== undefined && endSec !== undefined && endSec <= startSec) throw new Error("End must be after start");
+    const assetId = String(form.get("assetId") ?? "");
+    if (!assetId) throw new Error("Choose a video file to upload");
+    const asset = await store.getUploadStatus(assetId);
+    if (!asset) throw new Error("Uploaded video not found in Hygraph");
+    if (asset.status !== "complete") throw new Error(asset.error ?? "The video is still processing — try again in a moment");
     await store.createClip({
       ...bout,
       boutId: String(form.get("boutId")),
       title: String(form.get("title") ?? "").trim() || `${form.get("eastShikona")} vs ${form.get("westShikona")}`,
       eastShikona: String(form.get("eastShikona") ?? ""),
       westShikona: String(form.get("westShikona") ?? ""),
-      source,
-      videoUrl,
-      startSec,
-      endSec,
-      streamId: String(form.get("streamId") ?? "") || undefined,
+      source: "upload",
+      videoUrl: asset.url,
     });
     updateTag(TAGS.clips);
     return { ok: true };
@@ -114,4 +105,10 @@ export async function deleteClip(id: string): Promise<ActionResult> {
 export async function createClipUpload(fileName: string) {
   await requireAdmin();
   return store.createUpload(fileName);
+}
+
+/** Polled by the clip form after the file is sent: Hygraph processes the video before serving it. */
+export async function checkClipUpload(assetId: string) {
+  await requireAdmin();
+  return store.getUploadStatus(assetId);
 }

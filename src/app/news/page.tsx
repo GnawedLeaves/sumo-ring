@@ -17,7 +17,7 @@ function archiveCutoff() {
 export default function Page({ searchParams }: PageProps<"/news">) {
   return (
     <section className="page flex flex-col gap-10">
-      <h1 className="text-center font-display text-heading-lg text-brand">News</h1>
+      <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">News</h1>
       <Suspense fallback={<p className="text-body-sm">Loading news…</p>}>
         <NewsList searchParams={searchParams} />
       </Suspense>
@@ -114,7 +114,7 @@ function ArticleCard({ article: a, lead }: { article: NewsArticle; lead: boolean
             </span>
           ))}
         </span>
-        <span className={`font-display font-bold leading-tight tracking-tight text-brand ${lead ? "text-heading-lg" : "text-subheading"}`}>{a.title}</span>
+        <span className={`font-display font-bold leading-tight tracking-tight text-brand ${lead ? "text-heading md:text-heading-lg" : "text-subheading"}`}>{a.title}</span>
         <span className="text-body-sm">{a.summary}</span>
         <span className="mt-auto text-caption text-ink-soft">{formatDate(a.publishedAt)}</span>
       </Link>

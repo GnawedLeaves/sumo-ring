@@ -67,14 +67,20 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       </header>
 
       {/* Matchup */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
+      {/* minmax(0,1fr) lets each side shrink below its content width so long shikona wrap instead of spilling out */}
+      <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${compact ? "gap-2" : "gap-4"}`}>
         {sides.map((s, i) => {
           const won = bout?.winnerId === s.id;
           const decided = Boolean(bout?.winnerId);
           return (
-            <div key={s.id} className={`flex flex-col gap-2 ${i === 0 ? "items-start" : "col-start-3 items-end text-right"}`}>
-              <Portrait id={s.id} en={s.r?.shikonaEn ?? ""} jp={s.r?.shikonaJp} src={portraits[s.id]} size={compact ? "md" : "lg"} />
-              <Link href={`/rikishi/${s.id}`} className="font-display text-subheading font-bold leading-none tracking-tight text-brand hover:underline md:text-heading">
+            <div key={s.id} className={`flex min-w-0 flex-col gap-1.5 ${i === 0 ? "items-start" : "col-start-3 items-end text-right"}`}>
+              <Portrait id={s.id} en={s.r?.shikonaEn ?? ""} jp={s.r?.shikonaJp} src={portraits[s.id]} size={compact ? "sm" : "lg"} />
+              <Link
+                href={`/rikishi/${s.id}`}
+                className={`max-w-full break-words font-display font-bold leading-tight tracking-tight text-brand hover:underline ${
+                  compact ? "text-body" : "text-subheading md:text-heading md:leading-none"
+                }`}
+              >
                 {s.r?.shikonaEn ?? (i === 0 ? bout?.eastShikona : bout?.westShikona)}
               </Link>
               <span className="font-jp text-body-sm">{shikonaOnly(s.r?.shikonaJp)}</span>
@@ -82,11 +88,15 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
               <span className="text-body-sm">
                 Basho <strong>{s.rec}</strong>
               </span>
-              {decided && <span className={`badge ${won ? "" : "bg-surface! text-ink! border border-line"}`}>{won ? `WIN · ${bout?.kimarite}` : "LOSS"}</span>}
+              {decided && (
+                <span className={`badge max-w-full break-words ${won ? "" : "bg-surface! text-ink! border border-line"}`}>
+                  {won ? `WIN · ${bout?.kimarite}` : "LOSS"}
+                </span>
+              )}
             </div>
           );
         })}
-        <span className="col-start-2 row-start-1 self-center font-display text-heading italic text-brand">vs</span>
+        <span className={`col-start-2 row-start-1 self-center font-display italic text-brand ${compact ? "text-subheading" : "text-heading"}`}>vs</span>
       </div>
 
       {/* Head to head */}
@@ -105,7 +115,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
               <div className="bg-cobalt-stage" style={{ width: `${(e.h2hWins / h2hTotal) * 100}%` }} />
               <div className="bg-tangerine-pop" style={{ width: `${(w.h2hWins / h2hTotal) * 100}%` }} />
             </div>
-            <div className="grid grid-cols-2 gap-4 text-body-sm">
+            <div className="grid grid-cols-2 gap-4 break-words text-body-sm">
               <KimariteList who={<RikishiName en={e.r?.shikonaEn ?? "East"} jp={e.r?.shikonaJp} />} rows={Object.entries(h2h?.kimariteWins ?? {})} />
               <KimariteList who={<RikishiName en={w.r?.shikonaEn ?? "West"} jp={w.r?.shikonaJp} />} rows={Object.entries(h2h?.kimariteLosses ?? {})} align="right" />
             </div>
@@ -116,7 +126,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {/* Tale of the tape */}
       <section className="flex flex-col gap-3">
         <h3 className="font-display text-subheading text-brand">Tale of the tape</h3>
-        <table className="w-full border-collapse text-body-sm">
+        <table className="w-full table-fixed border-collapse break-words text-body-sm">
           <tbody>
             {[
               ["Heya", e.r?.heya, w.r?.heya],
@@ -144,14 +154,15 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
           <h3 className="font-display text-subheading text-brand">Previous meetings</h3>
           <ul className="divide-y divide-line border-y border-line text-body-sm">
             {previous.slice(0, compact ? 5 : 15).map((m) => (
-              <li key={`${m.bashoId}-${m.day}`} className="flex items-center justify-between gap-3 py-2">
-                <span className="w-24 shrink-0 text-ink-soft">
+              <li key={`${m.bashoId}-${m.day}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 py-2 sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
+                <span className="text-ink-soft">
                   {yyyymm(m.bashoId)} · D{m.day}
                 </span>
-                <span className="flex-1 font-bold">
+                <span className="min-w-0 break-words font-bold">
                   <RikishiName en={m.winnerEn} jp={m.winnerJp || (m.winnerId === b.eastId ? e.r?.shikonaJp : w.r?.shikonaJp)} />
                 </span>
-                <span className="text-ink-soft">{m.kimarite}</span>
+                {/* Wraps under the name on narrow widths and in the sidebar */}
+                <span className={`text-ink-soft ${compact ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1 sm:text-right"}`}>{m.kimarite}</span>
               </li>
             ))}
           </ul>

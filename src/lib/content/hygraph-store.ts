@@ -75,7 +75,8 @@ export const hygraphStore: ContentStore = {
     await gql(`mutation($id: ID!) { deleteClip(where: { id: $id }) { id } }`, { id });
   },
   async createUpload(fileName): Promise<UploadTarget | null> {
-    // Hygraph asset upload: create the asset, then POST the file to the returned presigned S3 form.
+    // Hygraph asset upload (new asset system): create the asset, then the browser POSTs the file to the
+    // returned presigned S3 form (all fields first, `file` last), then we poll getUploadStatus.
     const d = await gql<{
       createAsset: {
         id: string;
@@ -117,6 +118,19 @@ export const hygraphStore: ContentStore = {
         "X-Amz-Security-Token": p.securityToken,
       },
     };
+  },
+
+  async getUploadStatus(assetId) {
+    // Enum verified against a live project (Nov 2026): ASSET_CREATE_PENDING | ASSET_UPLOAD_COMPLETE |
+    // ASSET_UPDATE_PENDING | ASSET_ERROR_UPLOAD.
+    const d = await gql<{ asset: { url: string; upload: { status: string; error?: { message: string } | null } | null } | null }>(
+      `query($id: ID!) { asset(where: { id: $id }) { url upload { status error { message } } } }`,
+      { id: assetId },
+    );
+    if (!d.asset) return null;
+    const s = d.asset.upload?.status;
+    const status = s === "ASSET_UPLOAD_COMPLETE" ? "complete" : s === "ASSET_ERROR_UPLOAD" ? "error" : "pending";
+    return { status, url: d.asset.url, error: d.asset.upload?.error?.message };
   },
 
   async listNews() {

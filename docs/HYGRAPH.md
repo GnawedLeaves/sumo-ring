@@ -35,13 +35,21 @@ Field API IDs must match exactly. "Text" = single-line text unless noted.
 | `day` | Int | |
 | `eastId`, `westId` | Int | Sumo API rikishi ids |
 | `eastShikona`, `westShikona` | Text | |
-| `source` | Text | `upload`, `youtube`, `twitch` or `url` |
-| `videoUrl` | Text | asset URL for uploads, otherwise the VOD/stream URL |
-| `startSec`, `endSec` | Int | optional clip window inside `videoUrl` (groundwork for in-stream clipping) |
-| `streamId` | Text | optional — the Stream it was clipped from |
+| `source` | Text | `upload` (clips are always uploaded video files) |
+| `videoUrl` | Text | URL of the uploaded Hygraph asset |
+| `startSec`, `endSec` | Int | optional, unused for now — reserved for future in-stream clipping |
+| `streamId` | Text | optional, unused for now — reserved for future in-stream clipping |
 
-Uploaded clip videos are Hygraph Assets; the file goes straight from the browser to Hygraph's presigned S3 form
-(`createAsset` → `upload.requestPostData`), so large files never pass through the Next.js server.
+Clip videos are Hygraph Assets (new asset system — projects created after Feb 2024):
+
+1. `createAsset(data: { fileName })` returns `upload.requestPostData` (a presigned S3 form).
+2. The browser POSTs the file straight to S3 (policy fields first, `file` last), so large files never pass
+   through the Next.js server. Upload progress is shown.
+3. The app polls the asset's `upload.status` until `ASSET_UPLOAD_COMPLETE` (other values: `ASSET_CREATE_PENDING`,
+   `ASSET_UPDATE_PENDING`, `ASSET_ERROR_UPLOAD`) — the URL doesn't serve until then.
+4. The clip is saved with the asset URL, which the server reads from Hygraph rather than trusting the browser.
+
+Max file size depends on your Hygraph plan.
 
 ### NewsArticle
 | Field | Type | Notes |

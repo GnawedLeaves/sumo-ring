@@ -11,21 +11,25 @@ export function Podium({ summary, portraits, size = "lg" }: { summary: BashoSumm
   const big = size === "lg";
   return (
     <div className={`grid gap-6 ${big ? "md:grid-cols-[auto_1fr]" : ""}`}>
-      <Link href={`/rikishi/${lead.rikishiID}`} className="flex items-end gap-5">
+      <Link href={`/rikishi/${lead.rikishiID}`} className="flex min-w-0 items-end gap-4 sm:gap-5">
         <Portrait id={lead.rikishiID} en={lead.shikonaEn} jp={lead.shikonaJp} src={portraits[lead.rikishiID]} size={big ? "xl" : "lg"} />
-        <span className="flex flex-col gap-1">
+        <span className="flex min-w-0 flex-col gap-1">
           <span className="badge self-start">{summary.winner ? "YŪSHŌ" : "LEADER"}</span>
-          <span className={`font-display font-bold leading-none tracking-tight ${big ? "text-heading-lg" : "text-heading"}`}>{lead.shikonaEn}</span>
+          <span
+            className={`break-words font-display font-bold leading-none tracking-tight ${big ? "text-subheading sm:text-heading md:text-heading-lg" : "text-subheading sm:text-heading"}`}
+          >
+            {lead.shikonaEn}
+          </span>
           <span className="font-jp text-body">{shikonaOnly(lead.shikonaJp)}</span>
           <span className="text-body-sm">
             {lead.rank} · <strong>{record(lead.wins, lead.losses, lead.absences)}</strong>
           </span>
         </span>
       </Link>
-      <ul className={`grid grid-cols-3 gap-4 ${big ? "self-end" : ""}`}>
+      <ul className={`grid grid-cols-3 gap-3 sm:gap-4 ${big ? "self-end" : ""}`}>
         {others.map((r) => (
-          <li key={r.rikishiID}>
-            <Link href={`/rikishi/${r.rikishiID}`} className="flex flex-col gap-1">
+          <li key={r.rikishiID} className="min-w-0">
+            <Link href={`/rikishi/${r.rikishiID}`} className="flex flex-col gap-1 break-words">
               <Portrait id={r.rikishiID} en={r.shikonaEn} jp={r.shikonaJp} src={portraits[r.rikishiID]} size={big ? "md" : "sm"} />
               <span className="font-bold leading-tight">{r.shikonaEn}</span>
               <span className="font-jp text-body-sm">{shikonaOnly(r.shikonaJp)}</span>

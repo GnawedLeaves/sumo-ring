@@ -29,7 +29,7 @@ async function Article({ params }: Pick<PageProps<"/news/[slug]">, "params">) {
           </Link>
         ))}
       </div>
-      <h1 className="font-display text-heading-lg font-bold leading-none tracking-tight text-brand">{a.title}</h1>
+      <h1 className="font-display text-heading sm:text-heading-lg font-bold leading-none tracking-tight text-brand">{a.title}</h1>
       <p className="text-caption text-ink-soft">{formatDate(a.publishedAt)} · Translated from Japanese</p>
       <p className="font-display text-subheading">{a.summary}</p>
       {/* Body is plain Markdown-ish text; paragraphs split on blank lines. */}

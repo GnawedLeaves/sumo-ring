@@ -18,9 +18,8 @@ npm run dev
 Open http://localhost:3000.
 
 - **No Hygraph?** Streams/clips/news are stored in `.data/content.json` instead.
-- **Admin restrictions are OFF in development.** Under `npm run dev` everyone can add/edit streams and clips
-  (no Firebase needed). Set `DEV_ADMIN=false` in `.env.local` to test the real restriction. Production builds
-  (`npm run build` / `npm start`, i.e. Render) always enforce the admin claim.
+- **Admin restrictions are temporarily OFF everywhere (dev and production).** Anyone can add/edit streams and
+  upload clips. Set `ADMIN_RESTRICTED=true` (in `.env.local` and on Render) to require the Firebase admin claim.
 
 ## Admin account
 

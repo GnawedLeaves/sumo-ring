@@ -69,7 +69,10 @@ export const localStore: ContentStore = {
     await save(data);
   },
   async createUpload() {
-    return null; // file uploads need Hygraph; locally, paste a video URL instead
+    return null; // video uploads need Hygraph
+  },
+  async getUploadStatus() {
+    return null;
   },
 
   async listNews() {

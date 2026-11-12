@@ -54,7 +54,7 @@ export function BashoCalendar({ apiStarts }: { apiStarts: Record<string, string>
       {running && (
         <Link href="/basho" className="flex flex-col gap-2 bg-crimson-spotlight p-6 text-white md:p-10">
           <span className="badge self-start">IN PROGRESS</span>
-          <span className="font-display text-heading-lg font-bold">{name(running.id)}</span>
+          <span className="font-display text-heading sm:text-heading-lg font-bold">{name(running.id)}</span>
           <span className="text-body">
             Day {Math.floor((t - running.start.getTime()) / 86_400_000) + 1} of 15 · ends in {split(running.end.getTime() - t).d} days. Follow live →
           </span>
@@ -64,11 +64,11 @@ export function BashoCalendar({ apiStarts }: { apiStarts: Record<string, string>
       {/* Next basho hero countdown */}
       <section className="flex flex-col items-center gap-6 text-center">
         <p className="text-caption font-bold uppercase tracking-wide text-ink-soft">Next basho</p>
-        <h2 className="font-display text-heading-lg font-bold text-brand md:text-display">{name(next.id)}</h2>
+        <h2 className="font-display text-heading sm:text-heading-lg font-bold text-brand md:text-display">{name(next.id)}</h2>
         <p className="text-body">
           {formatDateRange(next.start, next.end)} · {info(next.id).venue}, {info(next.id).city}
         </p>
-        <div className="grid grid-cols-4 gap-3" role="timer" aria-live="off">
+        <div className="grid w-full max-w-md grid-cols-4 gap-2 sm:gap-3" role="timer" aria-live="off">
           {(
             [
               ["days", nextLeft.d],
@@ -77,8 +77,8 @@ export function BashoCalendar({ apiStarts }: { apiStarts: Record<string, string>
               ["sec", nextLeft.s],
             ] as const
           ).map(([label, v]) => (
-            <div key={label} className="flex min-w-20 flex-col border border-line bg-surface px-4 py-3">
-              <span className="font-display text-heading font-bold tabular-nums text-brand">{String(v).padStart(2, "0")}</span>
+            <div key={label} className="flex min-w-0 flex-col border border-line bg-surface px-1 py-3 sm:px-4">
+              <span className="font-display text-subheading font-bold tabular-nums text-brand sm:text-heading">{String(v).padStart(2, "0")}</span>
               <span className="text-caption uppercase text-ink-soft">{label}</span>
             </div>
           ))}
