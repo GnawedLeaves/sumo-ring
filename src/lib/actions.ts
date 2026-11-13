@@ -75,7 +75,11 @@ export async function saveClip(form: FormData): Promise<ActionResult> {
     if (!asset) throw new Error("Uploaded video not found in Hygraph");
     if (asset.status !== "complete") throw new Error(asset.error ?? "The video is still processing — try again in a moment");
     await store.createClip({
-      ...bout,
+      // Only fields the Clip model has — matchNo is already encoded in boutId.
+      bashoId: bout.bashoId,
+      day: bout.day,
+      eastId: bout.eastId,
+      westId: bout.westId,
       boutId: String(form.get("boutId")),
       title: String(form.get("title") ?? "").trim() || `${form.get("eastShikona")} vs ${form.get("westShikona")}`,
       eastShikona: String(form.get("eastShikona") ?? ""),

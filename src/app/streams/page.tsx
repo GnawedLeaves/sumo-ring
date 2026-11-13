@@ -1,3 +1,4 @@
+import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -84,11 +85,15 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   ) : (
-                    <span aria-hidden className="flex h-full items-center justify-center text-heading opacity-60">
-                      ▶
+                    <span aria-hidden className="flex h-full items-center justify-center opacity-60">
+                      <Play className="h-8 w-8" />
                     </span>
                   )}
-                  {active && <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-caption font-bold uppercase">▶ Watching</span>}
+                  {active && (
+                    <span className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/45 text-caption font-bold uppercase">
+                      <Play aria-hidden className="h-3.5 w-3.5 fill-current" /> Watching
+                    </span>
+                  )}
                 </span>
                 <span className="flex flex-1 flex-col justify-between gap-1 p-3">
                   <span className="text-body font-bold leading-tight">{st.name}</span>

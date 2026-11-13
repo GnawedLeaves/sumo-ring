@@ -1,5 +1,6 @@
 "use client";
 
+import { Moon, Sun, SunMoon } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { THEME_COOKIE, THEME_KEY as KEY } from "@/lib/theme";
@@ -8,7 +9,6 @@ type Theme = "system" | "light" | "dark";
 const EVENT = "sumo-hub:theme";
 const ORDER: Theme[] = ["system", "light", "dark"];
 const LABEL: Record<Theme, string> = { system: "Auto", light: "Light", dark: "Dark" };
-const ICON: Record<Theme, string> = { system: "◐", light: "☀", dark: "☾" };
 
 function read(): Theme {
   const t = document.documentElement.getAttribute("data-theme");
@@ -66,7 +66,8 @@ export function ThemeToggle() {
       aria-label={`Theme: ${LABEL[theme]}. Switch to ${LABEL[next]}`}
       title={`Theme: ${LABEL[theme]}`}
     >
-      <span aria-hidden>{ICON[theme]}</span> <span className="hidden sm:inline">{LABEL[theme]}</span>
+      {theme === "light" ? <Sun aria-hidden className="h-4 w-4" /> : theme === "dark" ? <Moon aria-hidden className="h-4 w-4" /> : <SunMoon aria-hidden className="h-4 w-4" />}
+      <span className="hidden sm:inline">{LABEL[theme]}</span>
     </button>
   );
 }

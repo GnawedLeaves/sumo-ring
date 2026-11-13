@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useTransition } from "react";
 import { deleteStream, reorderStreams, saveStream } from "@/lib/actions";
 import type { Stream } from "@/lib/content/types";
@@ -58,7 +59,7 @@ export function StreamManager({ streams, setupError }: { streams: Stream[]; setu
             <li key={s.id} className="flex flex-wrap items-center gap-3 py-3 text-body-sm">
               <span className="flex flex-col">
                 <button type="button" aria-label="Move up" disabled={i === 0 || pending} onClick={() => move(i, -1)} className="leading-none disabled:opacity-30">
-                  ▲
+                  <ChevronUp aria-hidden className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -67,7 +68,7 @@ export function StreamManager({ streams, setupError }: { streams: Stream[]; setu
                   onClick={() => move(i, 1)}
                   className="leading-none disabled:opacity-30"
                 >
-                  ▼
+                  <ChevronDown aria-hidden className="h-4 w-4" />
                 </button>
               </span>
               <span className="flex-1">

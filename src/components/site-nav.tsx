@@ -1,15 +1,16 @@
 "use client";
 
+import { CalendarDays, CircleDot, MonitorPlay, Newspaper, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 export const NAV_ITEMS = [
-  { href: "/basho", label: "Basho", icon: "◎" },
-  { href: "/streams", label: "Streams", icon: "▶" },
-  { href: "/rikishi", label: "Rikishi", icon: "力" },
-  { href: "/news", label: "News", icon: "≡" },
-  { href: "/calendar", label: "Calendar", icon: "▦" },
+  { href: "/basho", label: "Basho", icon: CircleDot },
+  { href: "/streams", label: "Streams", icon: MonitorPlay },
+  { href: "/rikishi", label: "Rikishi", icon: Users },
+  { href: "/news", label: "News", icon: Newspaper },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
 ] as const;
 
 type IsActive = (href: string) => boolean;
@@ -56,9 +57,7 @@ function MobileLinks({ isActive }: { isActive: IsActive }) {
             aria-current={active ? "page" : undefined}
             className={`flex flex-col items-center gap-0.5 py-2 text-caption ${active ? "font-bold text-brand" : "text-ink-soft"}`}
           >
-            <span aria-hidden className={`text-body leading-none ${active ? "" : "opacity-70"}`}>
-              {item.icon}
-            </span>
+            <item.icon aria-hidden className={`h-5 w-5 ${active ? "" : "opacity-70"}`} strokeWidth={active ? 2.25 : 1.75} />
             {item.label}
           </Link>
         );

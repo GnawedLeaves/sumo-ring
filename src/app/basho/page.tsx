@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BashoTabs } from "@/components/basho/basho-tabs";
 import { BoutList } from "@/components/basho/bout-list";
+import { ScrollToBout } from "@/components/basho/scroll-to-bout";
 import { Podium } from "@/components/basho/podium";
 import { BoutDetail } from "@/components/bout/bout-detail";
 import { LiveIndicator } from "@/components/live-indicator";
@@ -61,7 +62,16 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
   const division = sp.div === "Juryo" || sp.div === "Makuuchi" ? sp.div : (current?.division ?? "Makuuchi");
   const bouts = division === "Juryo" ? juryo : makuuchi;
   const currentId = current?.status === "up-now" ? boutId(current.bout) : undefined;
-  const selected = typeof sp.bout === "string" ? sp.bout : (currentId ?? (bouts[0] && boutId(bouts[0])));
+  // Where the sidebar opens: the live bout if it's in this division, otherwise the latest finished bout
+  // (bouts run in matchNo order), or the first bout of the day if none have finished yet.
+  const focusId =
+    (currentId && bouts.some((m) => boutId(m) === currentId) ? currentId : undefined) ??
+    (() => {
+      const done = bouts.filter((m) => m.winnerId).sort((a, b) => b.matchNo - a.matchNo)[0];
+      const first = [...bouts].sort((a, b) => a.matchNo - b.matchNo)[0];
+      return done ? boutId(done) : first && boutId(first);
+    })();
+  const selected = typeof sp.bout === "string" ? sp.bout : focusId;
   const href = (extra: Record<string, string>) => `/basho?${new URLSearchParams({ div: division, ...(selected ? { bout: selected } : {}), ...extra })}`;
 
   return (
@@ -128,9 +138,9 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
               </Link>
             ))}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <ScrollToBout targetId={focusId} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} hrefFor={(id) => href({ bout: id })} />
-          </div>
+          </ScrollToBout>
         </aside>
         <div className="min-w-0">
           {selected ? (

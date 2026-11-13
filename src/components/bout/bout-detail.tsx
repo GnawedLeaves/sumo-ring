@@ -4,7 +4,8 @@ import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { VideoPlayer } from "@/components/video-player";
 import { ClipAdmin } from "@/components/bout/clip-admin";
-import { bashoName } from "@/lib/basho";
+import { bashoInfo, bashoName } from "@/lib/basho";
+import { CopyButton } from "@/components/copy-button";
 import { getClips, getPortraitMap } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
@@ -52,13 +53,21 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   const h2hTotal = e.h2hWins + w.h2hWins;
   // Previous meetings: exclude this bout itself so "history" means before today.
   const previous = (h2h?.matches ?? []).filter((m) => !(m.bashoId === b.bashoId && m.day === b.day));
+  // e.g. "Kyushu Basho 2026 Day 6: Fujinokawa vs Ura" (east first, as on the torikumi).
+  const info = bashoInfo(b.bashoId);
+  const boutTitle = `${info ? `${info.en} Basho ${b.bashoId.slice(0, 4)}` : bashoName(b.bashoId)} Day ${b.day}: ${
+    e.r?.shikonaEn ?? bout?.eastShikona ?? "East"
+  } vs ${w.r?.shikonaEn ?? bout?.westShikona ?? "West"}`;
 
   return (
     <article className="flex flex-col gap-8">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-caption font-bold uppercase tracking-wide text-ink-soft">
-          {bashoName(b.bashoId)} · Day {b.day}
-          {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
+        <p className="flex flex-wrap items-center gap-x-2 text-caption font-bold uppercase tracking-wide text-ink-soft">
+          <span>
+            {bashoName(b.bashoId)} · Day {b.day}
+            {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
+          </span>
+          {compact && <CopyButton text={boutTitle} label="Copy bout title" />}
         </p>
         {!compact && (
           <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
@@ -66,6 +75,11 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
           </Link>
         )}
       </header>
+
+      {/* Clips first: if this bout has video, it's the main thing to see. */}
+      <Suspense fallback={null}>
+        <BoutClipVideos boutId={boutId} />
+      </Suspense>
 
       {/* Matchup */}
       {/* minmax(0,1fr) lets each side shrink below its content width so long shikona wrap instead of spilling out */}
@@ -171,7 +185,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       )}
 
       <Suspense fallback={null}>
-        <BoutClips boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} />
+        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} />
       </Suspense>
     </article>
   );
@@ -200,18 +214,24 @@ function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [strin
   );
 }
 
-async function BoutClips({ boutId, eastShikona, westShikona }: { boutId: string; eastShikona: string; westShikona: string }) {
+/** The bout's clips, shown at the top of the bout. Renders nothing when there are none. */
+async function BoutClipVideos({ boutId }: { boutId: string }) {
   const clips = await getClips({ boutId });
+  if (clips.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3">
-      {clips.length > 0 && <h3 className="font-display text-subheading text-brand">Clips</h3>}
+    <section className="flex flex-col gap-3" aria-label="Clips">
       {clips.map((c) => (
         <figure key={c.id} className="flex flex-col gap-2">
           <VideoPlayer url={c.videoUrl} start={c.startSec} end={c.endSec} title={c.title} />
-          <figcaption className="text-body-sm">{c.title}</figcaption>
+          <figcaption className="text-body-sm text-ink-soft">{c.title}</figcaption>
         </figure>
       ))}
-      <ClipAdmin boutId={boutId} eastShikona={eastShikona} westShikona={westShikona} clips={clips.map((c) => ({ id: c.id, title: c.title }))} />
     </section>
   );
+}
+
+/** Admin-only clip upload / delete, kept at the bottom of the bout. (getClips is cached, so this reuses the same fetch.) */
+async function BoutClipAdmin({ boutId, eastShikona, westShikona }: { boutId: string; eastShikona: string; westShikona: string }) {
+  const clips = await getClips({ boutId });
+  return <ClipAdmin boutId={boutId} eastShikona={eastShikona} westShikona={westShikona} clips={clips.map((c) => ({ id: c.id, title: c.title }))} />;
 }

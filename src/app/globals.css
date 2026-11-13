@@ -95,6 +95,30 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Tailwind v4 dropped the pointer cursor on buttons; restore it for everything clickable. (Base layer, so a
+   cursor-* utility on an element still wins.) */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @layer components {
   .page {
     @apply mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-16;

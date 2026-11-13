@@ -1,5 +1,6 @@
 "use client";
 
+import { History } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -168,7 +169,8 @@ function SearchBox({ query, setQuery, onSubmit }: { query: string; setQuery: (q:
                         }
                       }}
                     >
-                      ↺ {h.en ? <RikishiName en={h.en} jp={h.jp} /> : h.q}
+                      <History aria-hidden className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-ink-soft" />
+                      {h.en ? <RikishiName en={h.en} jp={h.jp} /> : h.q}
                     </button>
                   </li>
                 ))}

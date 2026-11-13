@@ -49,7 +49,7 @@ export function BoutList({
           );
         };
         return (
-          <li key={id}>
+          <li key={id} data-bout-id={id}>
             <Link
               href={hrefFor(id)}
               scroll={false}
