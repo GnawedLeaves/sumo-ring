@@ -12,7 +12,8 @@ import { bashoInfo, bashoName, bashoWindow, formatDateRange } from "@/lib/basho"
 import { getClips, getPortraitMap } from "@/lib/content";
 import { shikonaOnly } from "@/lib/format";
 import { getLiveContext } from "@/lib/live";
-import { getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
+import { getBanzuke, getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
+import { Standings } from "@/components/basho/standings";
 import { Romaji } from "@/components/jp";
 
 const DAYS = Array.from({ length: 15 }, (_, i) => i + 1);
@@ -32,18 +33,20 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
   const { bashoId } = await params;
   if (!/^\d{4}(01|03|05|07|09|11)$/.test(bashoId)) notFound();
   const sp = await searchParams;
-  const day = Math.min(15, Math.max(1, Number(sp.day) || 1));
   const division = sp.div === "Juryo" ? "Juryo" : "Makuuchi";
   const ctx = await getLiveContext();
   const live = ctx.active && ctx.bashoId === bashoId;
+  // A running basho opens on today's day; finished ones on Day 1.
+  const day = Math.min(15, Math.max(1, Number(sp.day) || (live && ctx.day) || 1));
   const freshness = live ? "live" : "settled";
 
-  const [summary, portraits, bouts, records, clips] = await Promise.all([
+  const [summary, portraits, bouts, records, clips, banzuke] = await Promise.all([
     getBashoSummary(bashoId, freshness),
     getPortraitMap(),
     getTorikumi(bashoId, day, division, freshness),
     getBashoRecords(bashoId, freshness),
     getClips({ bashoId }),
+    getBanzuke(bashoId, division, freshness),
   ]);
   if (!summary) notFound();
 
@@ -58,7 +61,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
     <div className="flex flex-col gap-12">
       {/* Hero: winner + runners-up, awards */}
       <header className="flex flex-col gap-8">
-        <BashoPicker groups={bashoByYear(ctx)} current={live ? undefined : bashoId} />
+        <BashoPicker groups={bashoByYear(ctx)} current={bashoId} />
         <div>
           <h1 className="font-display text-heading sm:text-heading-lg font-bold text-brand">
             {bashoName(bashoId)} <span className="font-jp text-heading font-normal">{info?.jp}</span>
@@ -67,9 +70,14 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
             {formatDateRange(w.start, w.end)} · {summary.location ?? `${info?.venue}, ${info?.city}`}
           </p>
         </div>
-        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
           <Podium summary={summary} portraits={portraits} />
           <aside className="h-fit rounded-card border border-line bg-surface p-5">
+            {/* No prizes yet (basho still running): the live standings are more useful than an empty Awards panel. */}
+            {(summary.specialPrizes ?? []).length === 0 && (summary.yusho ?? []).length === 0 ? (
+              <Standings entries={banzuke ?? []} division={division} records={records} />
+            ) : (
+              <>
             <h2 className="font-display text-subheading text-brand">Awards</h2>
             <ul className="mt-3 flex flex-col gap-2 text-body-sm">
               {(summary.specialPrizes ?? []).map((p) => (
@@ -93,6 +101,8 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
                 </li>
               ))}
             </ul>
+              </>
+            )}
           </aside>
         </div>
       </header>

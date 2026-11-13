@@ -46,9 +46,12 @@ export function HistoryList({ initial }: { initial: Page }) {
         {items.map((it) => (
           <li key={it.id} className="rounded-card border border-line bg-surface p-6">
             <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-              <Link href={`/basho/${it.id}`} className="font-display text-heading text-brand hover:underline">
-                {it.name} <span className="font-jp text-subheading">{it.jp}</span>
-              </Link>
+              <span className="flex flex-wrap items-center gap-3">
+                <Link href={`/basho/${it.id}`} className="font-display text-heading text-brand hover:underline">
+                  {it.name} <span className="font-jp text-subheading">{it.jp}</span>
+                </Link>
+                {it.inProgress && <span className="badge">IN PROGRESS</span>}
+              </span>
               <span className="text-body-sm text-ink-soft">
                 {it.dates} · {it.location}
               </span>

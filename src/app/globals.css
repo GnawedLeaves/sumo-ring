@@ -135,4 +135,13 @@ body {
   .link-accent {
     @apply border-b-2 pb-0.5;
   }
+  /* Section tabs: selected = bold brand text with a 2px brand underline sitting on the row's hairline. */
+  .tab {
+    @apply -mb-px border-b-2 border-transparent px-5 py-3 text-body-sm font-normal text-ink-soft transition-colors hover:text-brand;
+  }
+  .tab[aria-current="page"],
+  .tab[aria-pressed="true"],
+  .tab[aria-selected="true"] {
+    @apply border-brand font-bold text-brand;
+  }
 }

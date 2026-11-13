@@ -32,3 +32,4 @@ Tokens are implemented in `src/app/globals.css` (Tailwind v4 `@theme`).
 ## Components
 
 - Full-bleed hero, editorial section headline (Fraunces 32–42px indigo, centred), portrait cards (square, no border/radius, name below), featured colour cards (flat colour + circular cutout), pill buttons, outlined links (coloured 2px underline), highlighter badges, crimson announcement banner, indigo footer band with tangerine pill.
+- **Section tabs** (`.tab` in `globals.css`): text tabs on a 1px hairline row. Selected = bold, brand indigo, with a 2px brand underline; others regular weight in secondary ink. Driven by `aria-current` / `aria-pressed`.

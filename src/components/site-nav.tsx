@@ -1,9 +1,9 @@
 "use client";
 
-import { CalendarDays, CircleDot, MonitorPlay, Newspaper, Users } from "lucide-react";
+import { CalendarDays, ChevronDown, CircleDot, Ellipsis, ImageUp, MonitorPlay, Newspaper, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 
 export const NAV_ITEMS = [
   { href: "/basho", label: "Basho", icon: CircleDot },
@@ -12,6 +12,9 @@ export const NAV_ITEMS = [
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
 ] as const;
+
+/** Extra pages, tucked into the "Others" dropdown. Add new ones here. */
+export const OTHER_ITEMS = [{ href: "/portraits", label: "Rikishi portraits", icon: ImageUp }] as const;
 
 type IsActive = (href: string) => boolean;
 const none: IsActive = () => false;
@@ -24,6 +27,88 @@ function isActiveFor(path: string): IsActive {
  * Reading the URL (usePathname) can't be part of the prerendered shell, so each nav renders inside
  * <Suspense>: the shell ships the same links without highlighting, then the active tab lights up.
  */
+
+/** "Others" dropdown: a button that opens a small menu of extra pages. Closes on outside click, Escape or navigation. */
+function OthersMenu({ isActive, variant }: { isActive: IsActive; variant: "desktop" | "mobile" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const active = OTHER_ITEMS.some((i) => isActive(i.href));
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const menu = open && (
+    <ul
+      id={menuId}
+      className={`absolute z-50 min-w-52 border border-line bg-surface py-1 shadow-none ${
+        variant === "desktop" ? "right-0 top-full mt-3" : "bottom-full right-1 mb-2"
+      }`}
+    >
+      {OTHER_ITEMS.map((item) => {
+        const here = isActive(item.href);
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              onClick={() => setOpen(false)}
+              aria-current={here ? "page" : undefined}
+              className={`flex items-center gap-2.5 px-4 py-2.5 text-body-sm hover:bg-hover ${here ? "font-bold text-brand" : "text-ink"}`}
+            >
+              <item.icon aria-hidden className="h-4 w-4 shrink-0" />
+              {item.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  if (variant === "mobile") {
+    return (
+      <div ref={ref} className="relative flex">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={() => setOpen((o) => !o)}
+          className={`flex w-full flex-col items-center gap-0.5 py-2 text-caption ${active || open ? "font-bold text-brand" : "text-ink-soft"}`}
+        >
+          <Ellipsis aria-hidden className={`h-5 w-5 ${active || open ? "" : "opacity-70"}`} strokeWidth={active ? 2.25 : 1.75} />
+          Others
+        </button>
+        {menu}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-1 whitespace-nowrap hover:text-brand ${active ? "font-bold text-brand underline decoration-2 underline-offset-8" : ""}`}
+      >
+        Others
+        <ChevronDown aria-hidden className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {menu}
+    </div>
+  );
+}
 
 function DesktopLinks({ isActive }: { isActive: IsActive }) {
   return (
@@ -38,6 +123,7 @@ function DesktopLinks({ isActive }: { isActive: IsActive }) {
           {item.label}
         </Link>
       ))}
+      <OthersMenu isActive={isActive} variant="desktop" />
     </nav>
   );
 }
@@ -46,7 +132,7 @@ function MobileLinks({ isActive }: { isActive: IsActive }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {NAV_ITEMS.map((item) => {
         const active = isActive(item.href);
@@ -62,6 +148,7 @@ function MobileLinks({ isActive }: { isActive: IsActive }) {
           </Link>
         );
       })}
+      <OthersMenu isActive={isActive} variant="mobile" />
     </nav>
   );
 }

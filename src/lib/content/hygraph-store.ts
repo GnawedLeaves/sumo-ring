@@ -28,7 +28,7 @@ async function gql<T>(query: string, variables: Record<string, unknown> = {}): P
  * Publish an entry right after a create/update so it doesn't sit as a draft. (We read DRAFT, which always holds
  * the latest version, but PUBLISHED is what Hygraph treats as live.) Needs the token's Publish permission.
  */
-async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset", id: string) {
+async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset" | "RikishiPortrait", id: string) {
   await gql(`mutation($id: ID!) { publish${model}(where: { id: $id }, to: PUBLISHED) { id } }`, { id });
 }
 
@@ -179,5 +179,28 @@ export const hygraphStore: ContentStore = {
       `{ rikishiPortraits(first: 1000) { rikishiId image { url } } }`,
     );
     return d.rikishiPortraits.filter((p) => p.image?.url).map((p) => ({ rikishiId: p.rikishiId, imageUrl: p.image!.url }));
+  },
+  async setPortrait(rikishiId, assetId) {
+    // rikishiId isn't a unique field in the schema, so look the entry up rather than upserting on it.
+    const found = await gql<{ rikishiPortraits: { id: string }[] }>(
+      `query($rid: Int!) { rikishiPortraits(where: { rikishiId: $rid }, first: 1) { id } }`,
+      { rid: rikishiId },
+    );
+    const existing = found.rikishiPortraits[0]?.id;
+    let id: string;
+    if (existing) {
+      await gql(`mutation($id: ID!, $aid: ID!) { updateRikishiPortrait(where: { id: $id }, data: { image: { connect: { id: $aid } } }) { id } }`, {
+        id: existing,
+        aid: assetId,
+      });
+      id = existing;
+    } else {
+      const d = await gql<{ createRikishiPortrait: { id: string } }>(
+        `mutation($rid: Int!, $aid: ID!) { createRikishiPortrait(data: { rikishiId: $rid, image: { connect: { id: $aid } } }) { id } }`,
+        { rid: rikishiId, aid: assetId },
+      );
+      id = d.createRikishiPortrait.id;
+    }
+    await publish("RikishiPortrait", id);
   },
 };

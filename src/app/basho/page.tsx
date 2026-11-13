@@ -5,6 +5,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { BashoTabs } from "@/components/basho/basho-tabs";
 import { BoutList } from "@/components/basho/bout-list";
 import { ScrollToBout } from "@/components/basho/scroll-to-bout";
+import { pairTones } from "@/lib/rikishi-color";
 import { Podium } from "@/components/basho/podium";
 import { BoutDetail } from "@/components/bout/bout-detail";
 import { LiveIndicator } from "@/components/live-indicator";
@@ -80,6 +81,12 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
 
       {/* Hero: the bout on the dohyō right now */}
       <div className="flex flex-col gap-2">
+        <Link
+          href={`/basho/${ctx.bashoId}?${new URLSearchParams({ day: String(ctx.day), div: division, ...(selected ? { bout: selected } : {}) })}`}
+          className="link-accent self-start border-tangerine-pop text-body-sm"
+        >
+          {bashoName(ctx.bashoId)} — full results, standings &amp; every day →
+        </Link>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption font-bold uppercase tracking-wide text-ink-soft">
           {current?.status === "up-now" && <LiveIndicator />}
           <span>
@@ -100,7 +107,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
                 const rec = records[s.id];
                 return (
                   <span key={s.id} className={`flex min-w-0 flex-col gap-2 ${i ? "col-start-3 items-end text-right" : "items-start"}`}>
-                    <Portrait id={s.id} en={s.en} jp={rec?.jp} src={portraits[s.id]} size="lg" />
+                    <Portrait id={s.id} en={s.en} jp={rec?.jp} src={portraits[s.id]} size="lg" tone={pairTones(current.bout.eastId, current.bout.westId)[i]} />
                     <span className="max-w-full break-words font-display text-subheading font-bold leading-tight sm:text-heading md:text-heading-lg md:leading-none">
                       <RikishiName en={s.en} jp={rec?.jp} stacked />
                     </span>

@@ -6,6 +6,8 @@ import { VideoPlayer } from "@/components/video-player";
 import { ClipAdmin } from "@/components/bout/clip-admin";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { CopyButton } from "@/components/copy-button";
+import { ShareButton } from "@/components/share-button";
+import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
@@ -51,6 +53,9 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   ];
   const [e, w] = sides;
   const h2hTotal = e.h2hWins + w.h2hWins;
+  // One colour per side, shared by the portraits and the head-to-head bar (never the same for both).
+  const [eastTone, westTone] = pairTones(b.eastId, b.westId);
+  const tones = [eastTone, westTone];
   // Previous meetings: exclude this bout itself so "history" means before today.
   const previous = (h2h?.matches ?? []).filter((m) => !(m.bashoId === b.bashoId && m.day === b.day));
   // e.g. "Kyushu Basho 2026 Day 6: Fujinokawa vs Ura" (east first, as on the torikumi).
@@ -58,6 +63,8 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   const boutTitle = `${info ? `${info.en} Basho ${b.bashoId.slice(0, 4)}` : bashoName(b.bashoId)} Day ${b.day}: ${
     e.r?.shikonaEn ?? bout?.eastShikona ?? "East"
   } vs ${w.r?.shikonaEn ?? bout?.westShikona ?? "West"}`;
+  // Deep link to this bout inside its basho's day-by-day page (works for friends, during and after the basho).
+  const sharePath = `/basho/${b.bashoId}?${new URLSearchParams({ day: String(b.day), div: bout?.division ?? "Makuuchi", bout: boutId })}`;
 
   return (
     <article className="flex flex-col gap-8">
@@ -67,12 +74,15 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
             {bashoName(b.bashoId)} · Day {b.day}
             {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
           </span>
-          {compact && <CopyButton text={boutTitle} label="Copy bout title" />}
+          <CopyButton text={boutTitle} label="Copy bout title" />
         </p>
         {!compact && (
-          <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
-            Open bout page
-          </Link>
+          <span className="flex items-center gap-4">
+            <ShareButton path={sharePath} title={boutTitle} />
+            <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
+              Open bout page
+            </Link>
+          </span>
         )}
       </header>
 
@@ -89,7 +99,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
           const decided = Boolean(bout?.winnerId);
           return (
             <div key={s.id} className={`flex min-w-0 flex-col gap-1.5 ${i === 0 ? "items-start" : "col-start-3 items-end text-right"}`}>
-              <Portrait id={s.id} en={s.r?.shikonaEn ?? ""} jp={s.r?.shikonaJp} src={portraits[s.id]} size={compact ? "sm" : "lg"} />
+              <Portrait id={s.id} en={s.r?.shikonaEn ?? ""} jp={s.r?.shikonaJp} src={portraits[s.id]} size={compact ? "sm" : "lg"} tone={tones[i]} />
               <Link
                 href={`/rikishi/${s.id}`}
                 className={`max-w-full break-words font-display font-bold leading-tight tracking-tight text-brand hover:underline ${
@@ -122,13 +132,19 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         ) : (
           <>
             <div className="flex items-baseline justify-between font-display text-heading font-bold">
-              <span>{e.h2hWins}</span>
+              <span className="flex items-center gap-2">
+                <span aria-hidden className={`h-3 w-3 ${toneClass(eastTone)}`} />
+                {e.h2hWins}
+              </span>
               <span className="text-caption font-sans font-normal text-ink-soft">{h2hTotal} bouts</span>
-              <span>{w.h2hWins}</span>
+              <span className="flex items-center gap-2">
+                {w.h2hWins}
+                <span aria-hidden className={`h-3 w-3 ${toneClass(westTone)}`} />
+              </span>
             </div>
             <div className="flex h-3 border border-line" aria-hidden>
-              <div className="bg-cobalt-stage" style={{ width: `${(e.h2hWins / h2hTotal) * 100}%` }} />
-              <div className="bg-tangerine-pop" style={{ width: `${(w.h2hWins / h2hTotal) * 100}%` }} />
+              <div className={toneClass(eastTone)} style={{ width: `${(e.h2hWins / h2hTotal) * 100}%` }} />
+              <div className={toneClass(westTone)} style={{ width: `${(w.h2hWins / h2hTotal) * 100}%` }} />
             </div>
             <div className="grid grid-cols-2 gap-4 break-words text-body-sm">
               <KimariteList who={<RikishiName en={e.r?.shikonaEn ?? "East"} jp={e.r?.shikonaJp} />} rows={Object.entries(h2h?.kimariteWins ?? {})} />
@@ -221,9 +237,9 @@ async function BoutClipVideos({ boutId }: { boutId: string }) {
   return (
     <section className="flex flex-col gap-3" aria-label="Clips">
       {clips.map((c) => (
-        <figure key={c.id} className="flex flex-col gap-2">
+        // No visible caption: the bout header above already names the match. The title stays on the player for screen readers.
+        <figure key={c.id}>
           <VideoPlayer url={c.videoUrl} start={c.startSec} end={c.endSec} title={c.title} />
-          <figcaption className="text-body-sm text-ink-soft">{c.title}</figcaption>
         </figure>
       ))}
     </section>

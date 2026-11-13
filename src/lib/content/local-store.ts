@@ -98,4 +98,7 @@ export const localStore: ContentStore = {
   async listPortraits() {
     return (await load()).portraits;
   },
+  async setPortrait() {
+    throw new Error("Portrait uploads need Hygraph — set HYGRAPH_ENDPOINT and HYGRAPH_TOKEN.");
+  },
 };

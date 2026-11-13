@@ -9,9 +9,7 @@ export function TabNav({ tabs, active }: { tabs: { href: string; label: string; 
           key={t.key}
           href={t.href}
           aria-current={t.key === active ? "page" : undefined}
-          className={`-mb-px border border-transparent px-5 py-3 text-body-sm font-bold ${
-            t.key === active ? "border-line border-b-canvas bg-canvas text-brand" : "text-ink-soft hover:text-brand"
-          }`}
+          className="tab"
         >
           {t.label}
         </Link>

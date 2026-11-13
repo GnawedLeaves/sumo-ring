@@ -10,10 +10,9 @@ import { getBashoSummary, type BashoSummary } from "./sumo-data";
 export const FIRST_BASHO = "195801";
 export const HISTORY_PAGE_SIZE = 20;
 
-/** Every finished basho, most recent first. */
+/** Every basho that has started — including one still in progress — most recent first. */
 export function pastBashoIds(ctx: LiveContext): string[] {
-  const all = ctx.active ? previousBashoIds(ctx.bashoId, 600) : [ctx.bashoId, ...previousBashoIds(ctx.bashoId, 600)];
-  return all.filter((id) => id >= FIRST_BASHO);
+  return [ctx.bashoId, ...previousBashoIds(ctx.bashoId, 600)].filter((id) => id >= FIRST_BASHO);
 }
 
 export type HistoryItem = {
@@ -23,17 +22,32 @@ export type HistoryItem = {
   dates: string;
   location?: string;
   summary: BashoSummary | null;
+  /** Still running: the podium shows the current leaders, not a winner. */
+  inProgress: boolean;
 };
 
 export async function getHistoryPage(ctx: LiveContext, skip: number, limit = HISTORY_PAGE_SIZE) {
   const all = pastBashoIds(ctx);
   const ids = all.slice(skip, skip + limit);
-  const [summaries, portraits] = await Promise.all([Promise.all(ids.map((id) => getBashoSummary(id))), getPortraitMap()]);
+  const running = (id: string) => ctx.active && id === ctx.bashoId;
+  // The running basho uses short-lived ("live") data; finished ones are cached for days.
+  const [summaries, portraits] = await Promise.all([
+    Promise.all(ids.map((id) => getBashoSummary(id, running(id) ? "live" : "settled"))),
+    getPortraitMap(),
+  ]);
   const items: HistoryItem[] = ids.map((id, i) => {
     const s = summaries[i];
     const info = bashoInfo(id);
     const w = bashoWindow(id, s?.startDate);
-    return { id, name: bashoName(id), jp: info?.jp, dates: formatDateRange(w.start, w.end), location: s?.location ?? info?.city, summary: s };
+    return {
+      id,
+      name: bashoName(id),
+      jp: info?.jp,
+      dates: formatDateRange(w.start, w.end),
+      location: s?.location ?? info?.city,
+      summary: s,
+      inProgress: running(id),
+    };
   });
   // Only send portraits for the rikishi on this page.
   const shown = new Set(items.flatMap((it) => [it.summary?.winner, ...(it.summary?.runnersUp ?? [])].map((r) => r?.rikishiID)));
@@ -41,7 +55,7 @@ export async function getHistoryPage(ctx: LiveContext, skip: number, limit = HIS
   return { items, portraits: pagePortraits, total: all.length, nextSkip: skip + ids.length };
 }
 
-/** Finished basho grouped by year (newest first), for the jump-to dropdown. */
+/** Started basho (including one in progress) grouped by year (newest first), for the jump-to dropdown. */
 export function bashoByYear(ctx: LiveContext) {
   const groups: { year: string; basho: { id: string; label: string }[] }[] = [];
   for (const id of pastBashoIds(ctx)) {

@@ -111,6 +111,25 @@ export async function createClipUpload(fileName: string) {
   return store.createUpload(fileName);
 }
 
+/**
+ * Sets a rikishi's portrait to an image already uploaded to Hygraph (via createClipUpload, which works for any
+ * file). The upload must have finished processing.
+ */
+export async function savePortrait(rikishiId: number, assetId: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    if (!Number.isInteger(rikishiId) || rikishiId <= 0) throw new Error("Unknown rikishi");
+    const asset = await store.getUploadStatus(assetId);
+    if (!asset) throw new Error("Uploaded image not found in Hygraph");
+    if (asset.status !== "complete") throw new Error(asset.error ?? "The image is still processing — try again in a moment");
+    await store.setPortrait(rikishiId, assetId);
+    updateTag(TAGS.portraits);
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
 /** Polled by the clip form after the file is sent: Hygraph processes the video before serving it. */
 export async function checkClipUpload(assetId: string) {
   await requireAdmin();

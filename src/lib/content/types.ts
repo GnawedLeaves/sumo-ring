@@ -77,6 +77,8 @@ export interface ContentStore {
   updateNewsSources(id: string, sources: NewsSource[]): Promise<void>;
 
   listPortraits(): Promise<Portrait[]>;
+  /** Point a rikishi's portrait at an uploaded image asset (creates or replaces it). */
+  setPortrait(rikishiId: number, assetId: string): Promise<void>;
 }
 
 export type UploadStatus = { status: "pending" | "complete" | "error"; url: string; error?: string };

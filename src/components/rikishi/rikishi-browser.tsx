@@ -43,9 +43,7 @@ export function RikishiBrowser() {
               type="button"
               onClick={() => setStatus(s)}
               aria-pressed={status === s}
-              className={`-mb-px border px-5 py-3 text-body-sm font-bold capitalize ${
-                status === s ? "border-line border-b-canvas text-brand" : "border-transparent text-ink-soft"
-              }`}
+              className="tab capitalize"
             >
               {s}
             </button>

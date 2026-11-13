@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { checkClipUpload, createClipUpload, deleteClip, saveClip } from "@/lib/actions";
-import type { UploadTarget } from "@/lib/content/types";
+import { createClipUpload, deleteClip, saveClip } from "@/lib/actions";
+import { sendToStorage, waitUntilProcessed } from "@/lib/upload-client";
 
 type Props = {
   boutId: string;
@@ -15,35 +15,6 @@ type Props = {
 type Phase = { step: "idle" } | { step: "uploading"; pct: number } | { step: "processing" } | { step: "saving" };
 
 const input = "w-full border border-line bg-surface px-3 py-2 text-body-sm";
-const POLL_MS = 2000;
-const POLL_TIMEOUT_MS = 5 * 60_000;
-
-/** POSTs the file to Hygraph's presigned S3 form with progress. Policy fields first, `file` last (required). */
-function sendToStorage(target: UploadTarget, file: File, onProgress: (pct: number) => void) {
-  return new Promise<void>((resolve, reject) => {
-    const body = new FormData();
-    for (const [k, v] of Object.entries(target.fields)) body.append(k, v);
-    body.append("file", file);
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", target.postUrl);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
-    xhr.onerror = () => reject(new Error("Upload failed — check your connection"));
-    xhr.send(body);
-  });
-}
-
-/** Hygraph analyses the video before serving it; wait for ASSET_UPLOAD_COMPLETE. */
-async function waitUntilProcessed(assetId: string) {
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const s = await checkClipUpload(assetId);
-    if (s?.status === "complete") return;
-    if (s?.status === "error") throw new Error(s.error ?? "Hygraph couldn't process this video");
-    await new Promise((r) => setTimeout(r, POLL_MS));
-  }
-  throw new Error("Hygraph is still processing the video. Try saving again in a minute.");
-}
 
 export function ClipForm({ boutId, eastShikona, westShikona, clips, uploadsEnabled }: Props) {
   const [open, setOpen] = useState(false);
@@ -70,7 +41,7 @@ export function ClipForm({ boutId, eastShikona, westShikona, clips, uploadsEnabl
         uploaded.current = { file, assetId };
       }
       setPhase({ step: "processing" });
-      await waitUntilProcessed(assetId);
+      await waitUntilProcessed(assetId, "video");
 
       setPhase({ step: "saving" });
       form.delete("file");
