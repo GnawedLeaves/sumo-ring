@@ -34,7 +34,8 @@ async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset" | "Rik
 
 const STREAM = "id name url platform order note";
 const CLIP = "id title boutId bashoId day eastId westId eastShikona westShikona source videoUrl startSec endSec streamId createdAt";
-const NEWS = "id slug title summary body tags sources imageUrl publishedAt";
+// Hygraph reserves `publishedAt` (system field), so the model stores it as `publishedOn`; aliased back here.
+const NEWS = "id slug title summary body tags sources imageUrl publishedAt: publishedOn";
 
 const clean = <T extends Record<string, unknown>>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as T;
@@ -147,7 +148,7 @@ export const hygraphStore: ContentStore = {
   },
 
   async listNews() {
-    const d = await gql<{ newsArticles: NewsArticle[] }>(`{ newsArticles(orderBy: publishedAt_DESC, first: 500) { ${NEWS} } }`);
+    const d = await gql<{ newsArticles: NewsArticle[] }>(`{ newsArticles(orderBy: publishedOn_DESC, first: 500) { ${NEWS} } }`);
     return d.newsArticles.map(clean);
   },
   async getNews(slug) {
@@ -161,7 +162,7 @@ export const hygraphStore: ContentStore = {
   async createNews(input) {
     const d = await gql<{ createNewsArticle: NewsArticle }>(
       `mutation($data: NewsArticleCreateInput!) { createNewsArticle(data: $data) { ${NEWS} } }`,
-      { data: clean(input) },
+      { data: (({ publishedAt, ...rest }) => clean({ ...rest, publishedOn: publishedAt }))(input) },
     );
     await publish("NewsArticle", d.createNewsArticle.id);
     return d.createNewsArticle;

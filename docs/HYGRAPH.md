@@ -61,7 +61,7 @@ Max file size depends on your Hygraph plan.
 | `tags` | Text, **allow multiple values** | |
 | `sources` | JSON | `[{ "title": "<Japanese headline>", "url": "…", "publisher": "…" }]` — every outlet that covered the story |
 | `imageUrl` | Text | optional |
-| `publishedAt` | Date & time | original publication time; >90 days old is shown in the archive |
+| `publishedOn` | Date & time | original publication time (`publishedAt` is reserved by Hygraph); >90 days old is shown in the archive |
 
 ### RikishiPortrait
 | Field | Type | Notes |

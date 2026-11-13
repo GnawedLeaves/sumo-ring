@@ -94,7 +94,9 @@ function parse(xml: string, source: FeedSource): FeedItem[] {
 
     if (!link || !title || Number.isNaN(date.getTime())) continue;
     if (source.exclude?.test(publisher)) continue;
-    if (source.filter && !SUMO.test(title + text)) continue;
+    // All-sports feeds: the headline must look like sumo, or the lead must say 大相撲 outright — a stray 大関 or
+    // 土俵 in the lead of a boat-racing or entertainment story isn't enough.
+    if (source.filter && !SUMO.test(title) && !/大相撲/.test(text)) continue;
     if (source.id === "gn" && (!SUMO.test(title) || /大相撲中継|動画|の一番】/.test(title))) continue;
 
     items.push({ source, key: `${source.id}-${linkId(link)}`, title, link, publisher, publishedAt: date.toISOString(), text });
