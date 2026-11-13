@@ -21,10 +21,10 @@ export async function getViewer(): Promise<Viewer> {
   const cookie = (await cookies()).get(SESSION_COOKIE)?.value;
   if (cookie && adminConfigured) {
     try {
-      const claims = await adminAuth().verifySessionCookie(cookie);
+      const claims = await (await adminAuth()).verifySessionCookie(cookie);
       return { uid: claims.uid, email: claims.email, name: claims.name as string | undefined, admin: claims.admin === true };
     } catch {
-      // expired or revoked — treat as signed out
+      // expired or revoked (or Firebase Admin failed to load) — treat as signed out
     }
   }
   return null;

@@ -9,11 +9,13 @@ import { VideoPlayer } from "@/components/video-player";
 import { isAdmin } from "@/lib/auth/session";
 import { bashoName } from "@/lib/basho";
 import { getStreams, store } from "@/lib/content";
+import { thumbnailFor } from "@/lib/embed";
 import { boutId } from "@/lib/format";
-import { getLiveContext, getTodaysBouts } from "@/lib/live";
+import { getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
+import { RefreshButton } from "@/components/refresh-button";
 import { Romaji } from "@/components/jp";
 
-export const metadata: Metadata = { title: "Streams · Sumo Hub" };
+export const metadata: Metadata = { title: "Streams · Sumo Ring" };
 
 export default function Page({ searchParams }: PageProps<"/streams">) {
   return (
@@ -56,7 +58,7 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
     <>
       {/* On phones the player sticks under the header so you can scroll the bout stats while watching. */}
       <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 bg-black sm:static">
-        <VideoPlayer url={current.url} title={current.name} />
+        <VideoPlayer url={current.url} title={current.name} autoplay />
       </div>
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 sm:px-0">
         <h1 className="break-words font-display text-subheading text-brand sm:text-heading">{current.name}</h1>
@@ -65,18 +67,33 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
       <ul className="grid grid-cols-2 gap-3 px-4 sm:gap-4 sm:px-0 md:grid-cols-4" aria-label="Streams">
         {streams.map((st) => {
           const active = st.id === current.id;
+          const thumb = thumbnailFor(st.url);
           return (
             <li key={st.id}>
               <Link
                 href={`/streams?s=${st.id}`}
                 scroll={false}
                 aria-current={active ? "true" : undefined}
-                className={`flex h-full flex-col justify-between gap-3 p-4 text-white ${st.platform === "twitch" ? "bg-plum-velvet" : "bg-vermillion"} ${
-                  active ? "outline-4 outline-offset-2 outline-electric-teal" : "opacity-80 hover:opacity-100"
+                className={`group flex h-full flex-col text-white ${st.platform === "twitch" ? "bg-plum-velvet" : "bg-vermillion"} ${
+                  active ? "outline-4 outline-offset-2 outline-electric-teal" : "opacity-85 hover:opacity-100"
                 }`}
               >
-                <span className="text-body font-bold leading-tight">{st.name}</span>
-                <span className="text-caption uppercase">{active ? "▶ Watching" : st.platform}</span>
+                <span className="relative block aspect-video w-full overflow-hidden bg-black/30">
+                  {thumb ? (
+                    // Plain <img>: Twitch previews are live frames, so they must not go through (and get cached by) the image optimizer.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <span aria-hidden className="flex h-full items-center justify-center text-heading opacity-60">
+                      ▶
+                    </span>
+                  )}
+                  {active && <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-caption font-bold uppercase">▶ Watching</span>}
+                </span>
+                <span className="flex flex-1 flex-col justify-between gap-1 p-3">
+                  <span className="text-body font-bold leading-tight">{st.name}</span>
+                  <span className="text-caption uppercase opacity-80">{st.platform}</span>
+                </span>
               </Link>
             </li>
           );
@@ -115,17 +132,20 @@ async function LiveSidebar() {
   const { current } = await getTodaysBouts(ctx);
   return (
     <div className="flex flex-col gap-4">
-      <AutoRefresh seconds={30} />
+      {ctx.onAir && <AutoRefresh seconds={30} />}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-subheading text-brand">On the dohyō <span lang="ja" className="font-jp text-body font-normal">土俵</span></h2>
-        {current?.status === "up-now" ? (
-          <span className="flex items-center gap-2">
-            <LiveIndicator />
-            <span className="badge"><Romaji text={current.division.toUpperCase()} kind="division" /></span>
-          </span>
-        ) : (
-          <span className="text-caption text-ink-soft">Day {ctx.day}</span>
-        )}
+        <span className="flex items-center gap-2">
+          {current?.status === "up-now" ? (
+            <>
+              <LiveIndicator />
+              <span className="badge"><Romaji text={current.division.toUpperCase()} kind="division" /></span>
+            </>
+          ) : (
+            <span className="text-caption text-ink-soft">Day {ctx.day}</span>
+          )}
+          <RefreshButton label="Refresh current bout" />
+        </span>
       </div>
       {!current ? (
         <p className="text-body-sm">
@@ -134,6 +154,11 @@ async function LiveSidebar() {
       ) : (
         <>
           {current.status === "day-complete" && <p className="text-body-sm">Day {ctx.day} is complete. Last bout:</p>}
+          {current.status === "off-air" && (
+            <p className="text-body-sm">
+              Not live right now: bouts run {SESSION_HOURS_SGT.start}am–{SESSION_HOURS_SGT.end - 12}pm Singapore time. Next up:
+            </p>
+          )}
           {/* key: remount (and show the fallback) when the bout changes */}
           <Suspense key={boutId(current.bout)} fallback={<p className="text-body-sm">Loading bout…</p>}>
             <BoutDetail boutId={boutId(current.bout)} live compact />

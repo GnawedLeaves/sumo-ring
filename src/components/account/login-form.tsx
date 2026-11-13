@@ -93,7 +93,7 @@ export function LoginForm() {
           {mode === "in" ? "Create an account" : "Sign in"}
         </button>
       </p>
-      <p className="text-center text-caption text-ink-soft">An account is optional — everything on Sumo Hub is free to browse.</p>
+      <p className="text-center text-caption text-ink-soft">An account is optional — everything on Sumo Ring is free to browse.</p>
     </div>
   );
 }

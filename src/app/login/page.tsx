@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/account/login-form";
 
-export const metadata: Metadata = { title: "Sign in · Sumo Hub" };
+export const metadata: Metadata = { title: "Sign in · Sumo Ring" };
 
 export default function Page() {
   return (

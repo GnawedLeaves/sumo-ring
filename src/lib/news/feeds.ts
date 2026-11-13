@@ -106,7 +106,7 @@ export async function fetchFeed(source: FeedSource): Promise<FeedItem[]> {
   const res = await fetch(source.url, {
     cache: "no-store",
     signal: AbortSignal.timeout(20_000),
-    headers: { "User-Agent": "SumoHub/1.0 (news reader; links back to source)" },
+    headers: { "User-Agent": "SumoRing/1.0 (news reader; links back to source)" },
   });
   if (!res.ok) throw new Error(`${source.publisher} feed ${res.status}`);
   return parse(await res.text(), source);

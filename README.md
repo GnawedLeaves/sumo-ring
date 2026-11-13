@@ -1,4 +1,4 @@
-# Sumo Hub
+# Sumo Ring
 
 Next.js app for following professional sumo — live streams, basho results, rikishi stats, news and a calendar.
 

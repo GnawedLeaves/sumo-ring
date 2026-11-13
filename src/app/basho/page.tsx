@@ -12,11 +12,11 @@ import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { getPortraitMap } from "@/lib/content";
 import { boutId, record } from "@/lib/format";
-import { getLiveContext, getTodaysBouts } from "@/lib/live";
+import { getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
 import { getBashoRecords, getBashoSummary } from "@/lib/sumo-data";
 import { Romaji } from "@/components/jp";
 
-export const metadata: Metadata = { title: "Basho · Sumo Hub" };
+export const metadata: Metadata = { title: "Basho · Sumo Ring" };
 
 export default function Page({ searchParams }: PageProps<"/basho">) {
   return (
@@ -66,7 +66,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
 
   return (
     <div className="flex flex-col gap-10">
-      <AutoRefresh seconds={30} />
+      {ctx.onAir && <AutoRefresh seconds={30} />}
 
       {/* Hero: the bout on the dohyō right now */}
       <div className="flex flex-col gap-2">
@@ -104,7 +104,11 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
           </Link>
         ) : (
           <p className="border border-line bg-surface p-6 text-body">
-            {current ? `Day ${ctx.day} is complete.` : `Day ${ctx.day} torikumi hasn't been published yet.`}
+            {current?.status === "off-air"
+              ? `Not live right now: Day ${ctx.day} bouts run ${SESSION_HOURS_SGT.start}am–${SESSION_HOURS_SGT.end - 12}pm Singapore time. Next up: ${current.bout.eastShikona} vs ${current.bout.westShikona}.`
+              : current
+                ? `Day ${ctx.day} is complete.`
+                : `Day ${ctx.day} torikumi hasn't been published yet.`}
           </p>
         )}
       </div>

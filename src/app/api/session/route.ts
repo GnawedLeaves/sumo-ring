@@ -9,12 +9,13 @@ export async function POST(request: Request) {
   if (!idToken) return Response.json({ error: "Missing idToken" }, { status: 400 });
 
   try {
-    const decoded = await adminAuth().verifyIdToken(idToken);
+    const auth = await adminAuth();
+    const decoded = await auth.verifyIdToken(idToken);
     // Only mint sessions from a recent sign-in.
     if (Date.now() / 1000 - decoded.auth_time > 5 * 60) {
       return Response.json({ error: "Please sign in again." }, { status: 401 });
     }
-    const session = await adminAuth().createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
+    const session = await auth.createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
     (await cookies()).set(SESSION_COOKIE, session, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

@@ -5,7 +5,7 @@ import { SignOutButton } from "@/components/account/sign-out-button";
 import { SearchHistoryList } from "@/components/account/search-history-list";
 import { getViewer } from "@/lib/auth/session";
 
-export const metadata: Metadata = { title: "Profile · Sumo Hub" };
+export const metadata: Metadata = { title: "Profile · Sumo Ring" };
 
 export default function Page() {
   return (

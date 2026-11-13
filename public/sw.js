@@ -1,4 +1,4 @@
-// Sumo Hub service worker.
+// Sumo Ring service worker.
 // - Build assets (/_next/static, icons): cache-first — they're content-hashed/immutable.
 // - Pages: network-first; a copy is cached so recently viewed pages open offline,
 //   falling back to /offline when nothing is cached.

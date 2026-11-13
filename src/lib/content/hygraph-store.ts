@@ -24,6 +24,14 @@ async function gql<T>(query: string, variables: Record<string, unknown> = {}): P
   return json.data as T;
 }
 
+/**
+ * Publish an entry right after a create/update so it doesn't sit as a draft. (We read DRAFT, which always holds
+ * the latest version, but PUBLISHED is what Hygraph treats as live.) Needs the token's Publish permission.
+ */
+async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset", id: string) {
+  await gql(`mutation($id: ID!) { publish${model}(where: { id: $id }, to: PUBLISHED) { id } }`, { id });
+}
+
 const STREAM = "id name url platform order note";
 const CLIP = "id title boutId bashoId day eastId westId eastShikona westShikona source videoUrl startSec endSec streamId createdAt";
 const NEWS = "id slug title summary body tags sources imageUrl publishedAt";
@@ -43,6 +51,7 @@ export const hygraphStore: ContentStore = {
       `mutation($data: StreamCreateInput!) { createStream(data: $data) { ${STREAM} } }`,
       { data: input },
     );
+    await publish("Stream", d.createStream.id);
     return d.createStream;
   },
   async updateStream(id, input) {
@@ -50,6 +59,7 @@ export const hygraphStore: ContentStore = {
       `mutation($id: ID!, $data: StreamUpdateInput!) { updateStream(where: { id: $id }, data: $data) { ${STREAM} } }`,
       { id, data: input },
     );
+    await publish("Stream", id);
     return d.updateStream;
   },
   async deleteStream(id) {
@@ -69,6 +79,7 @@ export const hygraphStore: ContentStore = {
       `mutation($data: ClipCreateInput!) { createClip(data: $data) { ${CLIP} } }`,
       { data: clean(input) },
     );
+    await publish("Clip", d.createClip.id);
     return d.createClip;
   },
   async deleteClip(id) {
@@ -129,6 +140,8 @@ export const hygraphStore: ContentStore = {
     );
     if (!d.asset) return null;
     const s = d.asset.upload?.status;
+    // Publish the uploaded video once it's complete so it's live alongside the published clip.
+    if (s === "ASSET_UPLOAD_COMPLETE") await publish("Asset", assetId);
     const status = s === "ASSET_UPLOAD_COMPLETE" ? "complete" : s === "ASSET_ERROR_UPLOAD" ? "error" : "pending";
     return { status, url: d.asset.url, error: d.asset.upload?.error?.message };
   },
@@ -150,6 +163,7 @@ export const hygraphStore: ContentStore = {
       `mutation($data: NewsArticleCreateInput!) { createNewsArticle(data: $data) { ${NEWS} } }`,
       { data: clean(input) },
     );
+    await publish("NewsArticle", d.createNewsArticle.id);
     return d.createNewsArticle;
   },
   async updateNewsSources(id, sources) {
@@ -157,6 +171,7 @@ export const hygraphStore: ContentStore = {
       id,
       sources,
     });
+    await publish("NewsArticle", id);
   },
 
   async listPortraits(): Promise<Portrait[]> {

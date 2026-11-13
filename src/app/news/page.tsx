@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { getNewsArticles, type NewsArticle } from "@/lib/content";
 import { formatDate } from "@/lib/format";
 
-export const metadata: Metadata = { title: "News · Sumo Hub" };
+export const metadata: Metadata = { title: "News · Sumo Ring" };
 
 const ARCHIVE_AFTER_DAYS = 90;
 

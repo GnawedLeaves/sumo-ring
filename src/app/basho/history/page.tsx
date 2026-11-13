@@ -6,7 +6,7 @@ import { HistoryList } from "@/components/basho/history-list";
 import { bashoByYear, getHistoryPage } from "@/lib/basho-history";
 import { getLiveContext } from "@/lib/live";
 
-export const metadata: Metadata = { title: "Basho history · Sumo Hub" };
+export const metadata: Metadata = { title: "Basho history · Sumo Ring" };
 
 export default function Page() {
   return (

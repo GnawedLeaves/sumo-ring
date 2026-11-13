@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RikishiBrowser } from "@/components/rikishi/rikishi-browser";
 
-export const metadata: Metadata = { title: "Rikishi · Sumo Hub" };
+export const metadata: Metadata = { title: "Rikishi · Sumo Ring" };
 
 export default function Page() {
   return (

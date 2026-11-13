@@ -124,9 +124,9 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         )}
       </section>
 
-      {/* Tale of the tape */}
+      {/* Stats */}
       <section className="flex flex-col gap-3">
-        <h3 className="font-display text-subheading text-brand">Tale of the tape</h3>
+        <h3 className="font-display text-subheading text-brand">Stats</h3>
         <table className="w-full table-fixed border-collapse break-words text-body-sm">
           <tbody>
             {[

@@ -9,9 +9,9 @@ Code: `src/lib/content/hygraph-store.ts`. Without `HYGRAPH_ENDPOINT`, the app fa
 | Var | Value |
 |---|---|
 | `HYGRAPH_ENDPOINT` | Project settings → Endpoints → **High performance Content API** |
-| `HYGRAPH_TOKEN` | Permanent Auth Token (server-only). Default stage **DRAFT**; content permissions: Read/Create/Update/Delete on the models below, plus Asset Create/Read |
+| `HYGRAPH_TOKEN` | Permanent Auth Token (server-only). Default stage **DRAFT**; content permissions: Read/Create/Update/Delete/**Publish** on the models below, plus Asset Read/Create/Publish |
 
-The app reads and writes the **DRAFT** stage (`gcms-stage: DRAFT` header), so nothing needs publishing.
+The app reads the **DRAFT** stage (`gcms-stage: DRAFT` header) and publishes every entry it creates or updates (streams, clips, clip videos, news) straight away, so nothing is left sitting as a draft.
 
 ## Models
 

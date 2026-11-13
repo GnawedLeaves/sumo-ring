@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Offline · Sumo Hub" };
+export const metadata: Metadata = { title: "Offline · Sumo Ring" };
 
 /** Served by the service worker when there's no connection and the page isn't cached. */
 export default function Page() {

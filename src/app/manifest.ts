@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sumo Hub",
-    short_name: "Sumo Hub",
+    name: "Sumo Ring",
+    short_name: "Sumo Ring",
     description: "Live streams, basho results, rikishi stats and sumo news.",
     id: "/basho",
     start_url: "/basho",

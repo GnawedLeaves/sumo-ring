@@ -1,4 +1,4 @@
-# Sumo Hub — Product Spec
+# Sumo Ring — Product Spec
 
 Next.js (App Router) app for following professional sumo: live streams, basho results, rikishi stats, news and a calendar.
 

@@ -23,10 +23,10 @@ const notoJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "Sumo Hub",
+  title: "Sumo Ring",
   description: "Live streams, basho results, rikishi stats and sumo news.",
-  applicationName: "Sumo Hub",
-  appleWebApp: { capable: true, title: "Sumo Hub", statusBarStyle: "default" },
+  applicationName: "Sumo Ring",
+  appleWebApp: { capable: true, title: "Sumo Ring", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

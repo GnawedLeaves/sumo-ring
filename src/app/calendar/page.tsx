@@ -4,7 +4,7 @@ import { BashoCalendar } from "@/components/calendar/basho-calendar";
 import { sumoApi } from "@/lib/sumo-api";
 import { nextBashoIds } from "@/lib/basho";
 
-export const metadata: Metadata = { title: "Calendar · Sumo Hub" };
+export const metadata: Metadata = { title: "Calendar · Sumo Ring" };
 
 /**
  * Official start dates for basho the API already knows about (it lists upcoming basho once the
