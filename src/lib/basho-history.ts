@@ -24,6 +24,10 @@ export type HistoryItem = {
   summary: BashoSummary | null;
   /** Still running: the podium shows the current leaders, not a winner. */
   inProgress: boolean;
+  /** Today's day number while running. */
+  day?: number;
+  /** Bouts are on right now (a match day, 9am–5pm Singapore time) — only then show the red live dot. */
+  onAir: boolean;
 };
 
 export async function getHistoryPage(ctx: LiveContext, skip: number, limit = HISTORY_PAGE_SIZE) {
@@ -47,6 +51,8 @@ export async function getHistoryPage(ctx: LiveContext, skip: number, limit = HIS
       location: s?.location ?? info?.city,
       summary: s,
       inProgress: running(id),
+      day: running(id) ? (ctx.day ?? undefined) : undefined,
+      onAir: running(id) && ctx.onAir,
     };
   });
   // Only send portraits for the rikishi on this page.

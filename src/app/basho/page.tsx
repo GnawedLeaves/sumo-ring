@@ -14,8 +14,10 @@ import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { getPortraitMap } from "@/lib/content";
 import { boutId, record } from "@/lib/format";
-import { getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
-import { getBashoRecords, getBashoSummary } from "@/lib/sumo-data";
+import { dayStatus, getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
+import { getBanzuke, getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
+import { DayPicker } from "@/components/basho/day-picker";
+import { Standings } from "@/components/basho/standings";
 import { Romaji } from "@/components/jp";
 
 export const metadata: Metadata = { title: "Basho · Sumo Ring" };
@@ -25,7 +27,7 @@ export default function Page({ searchParams }: PageProps<"/basho">) {
     <section className="page flex flex-col gap-10">
       <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho<span lang="ja" className="ml-2 font-jp text-[0.6em] font-normal">場所</span></h1>
       <BashoTabs active="current" />
-      <Suspense fallback={<p className="text-body-sm">Loading today&apos;s torikumi…</p>}>
+      <Suspense fallback={<p className="text-body-sm">Loading torikumi…</p>}>
         <CurrentBasho searchParams={searchParams} />
       </Suspense>
     </section>
@@ -55,14 +57,34 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
     );
   }
 
-  const [{ juryo, makuuchi, current }, records, portraits] = await Promise.all([
-    getTodaysBouts(ctx),
+  // ?day= lets you look at other days of this basho without leaving the tab; no param = today.
+  const today = ctx.day ?? 1;
+  const asked = Number(sp.day);
+  const viewDay = Number.isInteger(asked) && asked >= 1 && asked <= 15 ? asked : today;
+  const isToday = viewDay === today;
+
+  const [todays, records, portraits] = await Promise.all([
+    isToday ? getTodaysBouts(ctx) : Promise.resolve(null),
     getBashoRecords(ctx.bashoId, "live"),
     getPortraitMap(),
   ]);
+  const [otherJuryo, otherMakuuchi] = isToday
+    ? [[], []]
+    : await Promise.all([getTorikumi(ctx.bashoId, viewDay, "Juryo", "live"), getTorikumi(ctx.bashoId, viewDay, "Makuuchi", "live")]);
+  const juryo = todays?.juryo ?? otherJuryo;
+  const makuuchi = todays?.makuuchi ?? otherMakuuchi;
+  const current = todays?.current ?? null;
+  const live = current?.status === "up-now";
+
   const division = sp.div === "Juryo" || sp.div === "Makuuchi" ? sp.div : (current?.division ?? "Makuuchi");
   const bouts = division === "Juryo" ? juryo : makuuchi;
-  const currentId = current?.status === "up-now" ? boutId(current.bout) : undefined;
+  const currentId = live && current ? boutId(current.bout) : undefined;
+  // When nothing is on the dohyō, a standings summary (grouped by losses) leads the page.
+  const banzuke = live ? null : await getBanzuke(ctx.bashoId, division, "live");
+  const dayParam: Record<string, string> = isToday ? {} : { day: String(viewDay) };
+  // Records include today's results once today's bouts are all decided (or the session is over).
+  const todayDone = ctx.afterSession || (isToday && current?.status === "day-complete");
+  const standingsAfter = todayDone ? today : today - 1;
   // Where the sidebar opens: the live bout if it's in this division, otherwise the latest finished bout
   // (bouts run in matchNo order), or the first bout of the day if none have finished yet.
   const focusId =
@@ -73,27 +95,52 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
       return done ? boutId(done) : first && boutId(first);
     })();
   const selected = typeof sp.bout === "string" ? sp.bout : focusId;
-  const href = (extra: Record<string, string>) => `/basho?${new URLSearchParams({ div: division, ...(selected ? { bout: selected } : {}), ...extra })}`;
+  const href = (extra: Record<string, string>) =>
+    `/basho?${new URLSearchParams({ ...dayParam, div: division, ...(selected ? { bout: selected } : {}), ...extra })}`;
+  const viewStatus = dayStatus(ctx, ctx.bashoId, viewDay);
 
   return (
     <div className="flex flex-col gap-10">
-      {ctx.onAir && <AutoRefresh seconds={30} />}
+      {ctx.onAir && isToday && <AutoRefresh seconds={30} />}
+
+      <DayPicker
+        selected={viewDay}
+        statusOf={(d) => dayStatus(ctx, ctx.bashoId, d)}
+        hrefFor={(d) => `/basho?${new URLSearchParams({ ...(d === today ? {} : { day: String(d) }), div: division })}`}
+      />
+
+      {banzuke && (
+        <Standings
+          compact
+          title={standingsAfter > 0 ? `Standings after Day ${standingsAfter}` : "Standings"}
+          entries={banzuke}
+          division={division}
+          records={records}
+        />
+      )}
 
       {/* Hero: the bout on the dohyō right now */}
       <div className="flex flex-col gap-2">
-        <Link
-          href={`/basho/${ctx.bashoId}?${new URLSearchParams({ day: String(ctx.day), div: division, ...(selected ? { bout: selected } : {}) })}`}
-          className="link-accent self-start border-tangerine-pop text-body-sm"
-        >
-          {bashoName(ctx.bashoId)} — full results, standings &amp; every day →
-        </Link>
+        {live && (
+          <Link
+            href={`/basho/${ctx.bashoId}?${new URLSearchParams({ day: String(today), div: division, ...(selected ? { bout: selected } : {}) })}`}
+            className="link-accent self-start border-tangerine-pop text-body-sm"
+          >
+            {bashoName(ctx.bashoId)} Results
+          </Link>
+        )}
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption font-bold uppercase tracking-wide text-ink-soft">
-          {current?.status === "up-now" && <LiveIndicator />}
+          {live && <LiveIndicator />}
           <span>
-            {bashoName(ctx.bashoId)} · {bashoInfo(ctx.bashoId)?.jp} · Day {ctx.day}
+            {bashoName(ctx.bashoId)} · {bashoInfo(ctx.bashoId)?.jp} · Day {viewDay}
+            {!isToday && ` · ${viewStatus === "upcoming" ? "upcoming" : "completed"}`}
           </span>
         </p>
-        {current?.status === "up-now" ? (
+        {!isToday ? (
+          bouts.length === 0 ? (
+            <p className="border border-line bg-surface p-6 text-body">Day {viewDay} torikumi hasn&apos;t been published yet.</p>
+          ) : null
+        ) : live && current ? (
           <Link href={href({ bout: boutId(current.bout), div: current.division })} scroll={false} className="block bg-indigo-frame p-4 text-white sm:p-6 md:p-10">
             <span className="flex flex-wrap items-center gap-2">
               <LiveIndicator />
@@ -137,7 +184,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
             {(["Makuuchi", "Juryo"] as const).map((d) => (
               <Link
                 key={d}
-                href={`/basho?div=${d}`}
+                href={`/basho?${new URLSearchParams({ ...dayParam, div: d })}`}
                 scroll={false}
                 className={`flex-1 py-3 text-center text-body-sm font-bold ${d === division ? "bg-indigo-frame text-white" : "hover:bg-hover"}`}
               >

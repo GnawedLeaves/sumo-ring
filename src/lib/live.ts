@@ -13,9 +13,21 @@ export type LiveContext = {
   day: number | null;
   /** A match day and within broadcast hours (9am–5pm Singapore time) — only then is anything "live". */
   onAir: boolean;
+  /** A match day and today's session is over (after 5pm SGT): today counts as a completed day. */
+  afterSession: boolean;
   startDate?: string;
   endDate?: string;
 };
+
+/** How a day of a basho should be presented: finished, on air now, today (not started yet), or still to come. */
+export type DayStatus = "done" | "live" | "today" | "upcoming";
+
+export function dayStatus(ctx: LiveContext, bashoId: string, d: number): DayStatus {
+  if (!ctx.active || bashoId !== ctx.bashoId || !ctx.day) return "done"; // finished basho
+  if (d < ctx.day) return "done";
+  if (d > ctx.day) return "upcoming";
+  return ctx.onAir ? "live" : ctx.afterSession ? "done" : "today";
+}
 
 export async function getLiveContext(): Promise<LiveContext> {
   await connection(); // reads the clock, so this must run per request
@@ -24,15 +36,27 @@ export async function getLiveContext(): Promise<LiveContext> {
   const basho = await getBasho(id, "live");
   const window = bashoWindow(id, basho?.startDate);
   const day = dayOf(window, now);
-  return { bashoId: id, active: day !== null, day, onAir: day !== null && inSession(now), startDate: basho?.startDate, endDate: basho?.endDate };
+  return {
+    bashoId: id,
+    active: day !== null,
+    day,
+    onAir: day !== null && inSession(now),
+    afterSession: day !== null && sgtHour(now) >= SESSION_HOURS_SGT.end,
+    startDate: basho?.startDate,
+    endDate: basho?.endDate,
+  };
 }
 
 /** Match-day broadcast window in Singapore time (UTC+8): 9:00–17:00. */
 export const SESSION_HOURS_SGT = { start: 9, end: 17 } as const;
 const SGT_OFFSET_MS = 8 * 3_600_000;
 
+function sgtHour(now: Date) {
+  return new Date(now.getTime() + SGT_OFFSET_MS).getUTCHours();
+}
+
 function inSession(now: Date) {
-  const hour = new Date(now.getTime() + SGT_OFFSET_MS).getUTCHours();
+  const hour = sgtHour(now);
   return hour >= SESSION_HOURS_SGT.start && hour < SESSION_HOURS_SGT.end;
 }
 

@@ -11,12 +11,13 @@ import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName, bashoWindow, formatDateRange } from "@/lib/basho";
 import { getClips, getPortraitMap } from "@/lib/content";
 import { shikonaOnly } from "@/lib/format";
-import { getLiveContext } from "@/lib/live";
+import { dayStatus, getLiveContext } from "@/lib/live";
+import { DayPicker } from "@/components/basho/day-picker";
 import { getBanzuke, getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
 import { Standings } from "@/components/basho/standings";
 import { Romaji } from "@/components/jp";
 
-const DAYS = Array.from({ length: 15 }, (_, i) => i + 1);
+
 
 export default function Page({ params, searchParams }: PageProps<"/basho/[bashoId]">) {
   return (
@@ -108,23 +109,8 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
       </header>
 
       {/* Day tabs | bouts | bout detail */}
-      <div className="grid gap-6 md:grid-cols-[72px_280px_1fr]">
-        <nav
-          aria-label="Day"
-          className="flex gap-1 self-start overflow-x-auto md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:flex-col md:overflow-y-auto md:overflow-x-visible"
-        >
-          {DAYS.map((d) => (
-            <Link
-              key={d}
-              href={href({ day: d })}
-              scroll={false}
-              aria-current={d === day ? "page" : undefined}
-              className={`shrink-0 border border-line px-3 py-2 text-center text-body-sm font-bold ${d === day ? "bg-indigo-frame text-white" : "bg-surface hover:bg-hover"}`}
-            >
-              Day {d}
-            </Link>
-          ))}
-        </nav>
+      <div className="grid gap-6 md:grid-cols-[96px_280px_1fr]">
+        <DayPicker vertical selected={day} statusOf={(d) => dayStatus(ctx, bashoId, d)} hrefFor={(d) => href({ day: d })} />
         {/* Fixed-height sidebar: the bout list scrolls inside it, not the page */}
         <aside className="flex h-[55dvh] flex-col self-start border border-line md:sticky md:top-20 md:h-[calc(100dvh-6rem)]">
           <div className="flex border-b border-line">

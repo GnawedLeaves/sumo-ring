@@ -5,19 +5,82 @@ import { record } from "@/lib/format";
 import { shortRank } from "@/lib/rank";
 import type { BanzukeEntry } from "@/lib/sumo-api";
 
+/** Losses including absent days (an absence counts as a loss on the record, as in the official standings). */
+const lossesOf = (r: BanzukeEntry) => r.losses + r.absences;
+
+function lossLabel(n: number) {
+  return n === 0 ? "Undefeated" : `${n} loss${n === 1 ? "" : "es"}`;
+}
+
 /**
- * A division's standings for a basho: every rikishi's record, best first (most wins, then fewest losses, then
- * higher rank). Ties on record share a position number.
+ * A division's standings for a basho, grouped by number of losses (fewest first, the way the yūshō race is
+ * followed). Within a group: most wins first, then higher rank.
  */
-export function Standings({ entries, division, records }: { entries: BanzukeEntry[]; division: string; records?: Record<number, { jp?: string }> }) {
-  const sorted = [...entries].sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.rankValue - b.rankValue);
-  const key = (r: BanzukeEntry) => `${r.wins}-${r.losses}-${r.absences}`;
-  // Same record = same position (1, 2, 2, 4…): each row takes the index of the first row with its record.
-  const positions = sorted.map((r, i) => sorted.findIndex((s) => key(s) === key(r)) + 1 || i + 1);
+export function Standings({
+  entries,
+  division,
+  records,
+  compact = false,
+  title = "Standings",
+}: {
+  entries: BanzukeEntry[];
+  division: string;
+  records?: Record<number, { jp?: string }>;
+  /** One line per loss group with name + record chips — a small summary for the top of a page. */
+  compact?: boolean;
+  title?: string;
+}) {
+  const sorted = [...entries].sort((a, b) => lossesOf(a) - lossesOf(b) || b.wins - a.wins || a.rankValue - b.rankValue);
+  const groups: [number, BanzukeEntry[]][] = [];
+  for (const r of sorted) {
+    const last = groups.at(-1);
+    if (last && last[0] === lossesOf(r)) last[1].push(r);
+    else groups.push([lossesOf(r), [r]]);
+  }
+
+  if (compact) {
+    return (
+      <section className="flex flex-col gap-3 border border-line bg-surface p-4 sm:p-5">
+        <h2 className="flex items-baseline justify-between gap-2 font-display text-subheading text-brand">
+          {title}
+          <span className="text-caption font-sans font-normal text-ink-soft">
+            <Romaji text={division} kind="division" />
+          </span>
+        </h2>
+        {sorted.length === 0 ? (
+          <p className="text-body-sm text-ink-soft">No records yet.</p>
+        ) : (
+          <dl className="flex flex-col divide-y divide-line">
+            {groups.map(([lost, rows]) => (
+              <div key={lost} className="grid gap-2 py-2.5 sm:grid-cols-[7.5rem_1fr] sm:gap-4">
+                <dt className="text-caption font-bold uppercase tracking-wide text-ink-soft sm:pt-1">
+                  {lossLabel(lost)} <span className="font-normal">· {rows.length}</span>
+                </dt>
+                <dd className="flex flex-wrap gap-1.5">
+                  {rows.map((r) => (
+                    <Link
+                      key={r.rikishiID}
+                      href={`/rikishi/${r.rikishiID}`}
+                      title={`${r.shikonaEn} · ${r.rank}`}
+                      className="inline-flex items-baseline gap-1.5 border border-line px-2 py-1 text-body-sm hover:bg-hover"
+                    >
+                      <span className="font-bold">{r.shikonaEn}</span>
+                      <span className="text-caption tabular-nums text-ink-soft">{record(r.wins, r.losses, r.absences)}</span>
+                    </Link>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="flex min-h-0 flex-col gap-3">
       <h2 className="flex items-baseline justify-between gap-2 font-display text-subheading text-brand">
-        Standings
+        {title}
         <span className="text-caption font-sans font-normal text-ink-soft">
           <Romaji text={division} kind="division" />
         </span>
@@ -25,20 +88,28 @@ export function Standings({ entries, division, records }: { entries: BanzukeEntr
       {sorted.length === 0 ? (
         <p className="text-body-sm text-ink-soft">No records yet.</p>
       ) : (
-        <ol className="-mx-2 max-h-[60dvh] overflow-y-auto overscroll-contain text-body-sm lg:max-h-[28rem]">
-          {sorted.map((r, i) => {
-            return (
-              <li key={r.rikishiID} className="flex items-baseline gap-2 border-b border-line px-2 py-1.5 last:border-b-0">
-                <span className="w-6 shrink-0 text-right text-caption tabular-nums text-ink-soft">{positions[i]}</span>
-                <Link href={`/rikishi/${r.rikishiID}`} className="min-w-0 flex-1 truncate font-bold hover:underline">
-                  <RikishiName en={r.shikonaEn} jp={r.shikonaJp || records?.[r.rikishiID]?.jp} />
-                </Link>
-                <span className="shrink-0 text-caption text-ink-soft">{shortRank(r.rank)}</span>
-                <span className="w-12 shrink-0 text-right font-bold tabular-nums">{record(r.wins, r.losses, r.absences)}</span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="-mx-2 max-h-[60dvh] overflow-y-auto overscroll-contain text-body-sm lg:max-h-[28rem]">
+          {groups.map(([lost, rows]) => (
+            <section key={lost} aria-label={lossLabel(lost)}>
+              {/* Sticks to the top of the scrolling list while its group is in view. */}
+              <h3 className="sticky top-0 z-10 flex items-baseline justify-between border-b border-line bg-surface px-2 pt-3 pb-1 text-caption font-bold uppercase tracking-wide text-ink-soft">
+                {lossLabel(lost)}
+                <span className="font-normal normal-case">{rows.length}</span>
+              </h3>
+              <ul>
+                {rows.map((r) => (
+                  <li key={r.rikishiID} className="flex items-baseline gap-2 border-b border-line px-2 py-1.5 last:border-b-0">
+                    <Link href={`/rikishi/${r.rikishiID}`} className="min-w-0 flex-1 truncate font-bold hover:underline">
+                      <RikishiName en={r.shikonaEn} jp={r.shikonaJp || records?.[r.rikishiID]?.jp} />
+                    </Link>
+                    <span className="shrink-0 text-caption text-ink-soft">{shortRank(r.rank)}</span>
+                    <span className="w-12 shrink-0 text-right font-bold tabular-nums">{record(r.wins, r.losses, r.absences)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
     </section>
   );
