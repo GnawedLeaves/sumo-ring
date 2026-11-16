@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Sumo Ring — Firestore security rules.
+// Paste into Firebase console → Firestore Database → Rules (or `firebase deploy --only firestore:rules`).
+//
+// Bout comments live at /bouts/{boutId}/comments/{commentId}.
+//  - Anyone can read.
+//  - Signed-in users can post as themselves: text 1–500 chars, display name ≤ 60, server timestamp.
+//  - Comments can't be edited. The author, or a user with the `admin` custom claim, can delete.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /bouts/{boutId}/comments/{commentId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+
+      allow delete: if request.auth != null
+        && (resource.data.uid == request.auth.uid || request.auth.token.admin == true);
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

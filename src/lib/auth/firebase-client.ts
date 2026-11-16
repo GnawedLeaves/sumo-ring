@@ -2,6 +2,7 @@
 
 import { getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,7 +13,15 @@ const config = {
 
 export const firebaseConfigured = Boolean(config.apiKey && config.projectId);
 
+function app() {
+  return getApps()[0] ?? initializeApp(config);
+}
+
 export function clientAuth() {
-  const app = getApps()[0] ?? initializeApp(config);
-  return getAuth(app);
+  return getAuth(app());
+}
+
+/** Firestore (bout comments). Access is controlled by firestore.rules, not by this app's server. */
+export function clientDb() {
+  return getFirestore(app());
 }

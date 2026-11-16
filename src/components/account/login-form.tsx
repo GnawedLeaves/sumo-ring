@@ -24,8 +24,14 @@ export function LoginForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken: await user.getIdToken(true) }),
     });
-    if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Could not start session");
-    router.push("/profile");
+    // 503 = Firebase Admin isn't configured on the server yet. The browser is still signed in (enough for
+    // comments), so carry on; only the server-rendered profile won't know about the session.
+    if (!res.ok && res.status !== 503) {
+      throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Could not start session");
+    }
+    // Return to where the user came from (e.g. a bout's comments). Same-site paths only.
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/profile");
     router.refresh();
   }
 

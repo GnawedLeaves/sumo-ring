@@ -20,32 +20,46 @@ export const metadata: Metadata = { title: "Streams · Sumo Ring" };
 
 export default function Page({ searchParams }: PageProps<"/streams">) {
   return (
-    <section className="mx-auto w-full max-w-[1400px] px-0 py-0 sm:px-4 sm:py-10 md:px-6">
-      <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <Suspense fallback={<div className="aspect-video w-full bg-black" />}>
-            <Player searchParams={searchParams} />
-          </Suspense>
-          <div className="px-4 sm:px-0">
-            <Suspense fallback={null}>
-              <AdminStreams />
-            </Suspense>
-          </div>
-        </div>
-        <aside className="mx-4 mb-6 h-fit min-w-0 border border-line bg-canvas p-4 sm:mx-0 sm:mb-0 sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-          <Suspense fallback={<p className="text-body-sm">Checking the dohyō…</p>}>
-            <LiveSidebar />
-          </Suspense>
-        </aside>
+    /*
+     * Phones/tablets: a single column (flex). The player is a DIRECT child of this section so its `sticky`
+     * holds for the whole page — a sticky element only sticks within its parent, and when it lived inside the
+     * left-column wrapper it let go as soon as the stats below came into view.
+     * Desktop (lg): a two-column grid; the player and stream list stack on the left, the stats sidebar spans
+     * both rows on the right, and the player is no longer sticky.
+     */
+    <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-0 pb-6 sm:px-4 sm:py-10 md:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-x-8">
+      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 bg-black lg:static lg:col-start-1 lg:row-start-1">
+        <Suspense fallback={<div className="aspect-video w-full bg-black" />}>
+          <PlayerVideo searchParams={searchParams} />
+        </Suspense>
       </div>
+      <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-2">
+        <Suspense fallback={null}>
+          <StreamPicker searchParams={searchParams} />
+        </Suspense>
+        <div className="px-4 sm:px-0">
+          <Suspense fallback={null}>
+            <AdminStreams />
+          </Suspense>
+        </div>
+      </div>
+      <aside className="mx-4 h-fit min-w-0 border border-line bg-canvas p-4 sm:mx-0 sm:p-5 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+        <Suspense fallback={<p className="text-body-sm">Checking the dohyō…</p>}>
+          <LiveSidebar />
+        </Suspense>
+      </aside>
     </section>
   );
 }
 
-async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParams">) {
+async function currentStream(searchParams: PageProps<"/streams">["searchParams"]) {
   const [{ s }, streams] = await Promise.all([searchParams, getStreams()]);
-  const current = streams.find((x) => x.id === s) ?? streams[0];
+  return { streams, current: streams.find((x) => x.id === s) ?? streams[0] };
+}
 
+/** The video itself (sticky on phones — see the layout note in Page). */
+async function PlayerVideo({ searchParams }: Pick<PageProps<"/streams">, "searchParams">) {
+  const { current } = await currentStream(searchParams);
   if (!current) {
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-indigo-frame p-6 text-center text-white">
@@ -54,13 +68,15 @@ async function Player({ searchParams }: Pick<PageProps<"/streams">, "searchParam
       </div>
     );
   }
+  return <VideoPlayer url={current.url} title={current.name} autoplay />;
+}
 
+/** Title of the stream being watched + the cards to switch streams. */
+async function StreamPicker({ searchParams }: Pick<PageProps<"/streams">, "searchParams">) {
+  const { streams, current } = await currentStream(searchParams);
+  if (!current) return null;
   return (
     <>
-      {/* On phones the player sticks under the header so you can scroll the bout stats while watching. */}
-      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 bg-black sm:static">
-        <VideoPlayer url={current.url} title={current.name} autoplay />
-      </div>
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 sm:px-0">
         <h1 className="break-words font-display text-subheading text-brand sm:text-heading">{current.name}</h1>
         {current.note && <p className="text-body-sm text-ink-soft">{current.note}</p>}

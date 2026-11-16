@@ -4,6 +4,7 @@ import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { VideoPlayer } from "@/components/video-player";
 import { ClipAdmin } from "@/components/bout/clip-admin";
+import { BoutComments } from "@/components/bout/bout-comments";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { CopyButton } from "@/components/copy-button";
 import { ShareButton } from "@/components/share-button";
@@ -199,6 +200,9 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
           </ul>
         </section>
       )}
+
+      {/* Fan comments (Firestore). Not in the compact Streams sidebar — too narrow, and it's a live view. */}
+      {!compact && <BoutComments boutId={boutId} title={boutTitle} />}
 
       <Suspense fallback={null}>
         <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} />
