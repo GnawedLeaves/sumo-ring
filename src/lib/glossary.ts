@@ -1,5 +1,6 @@
 // Japanese for the romaji the app shows. Lookups return undefined when a term isn't listed, so callers
 // simply show the romaji alone rather than guessing.
+import { findKimarite } from "./kimarite";
 import { RANK_JP, rankTier } from "./rank";
 
 const norm = (s: string) =>
@@ -30,38 +31,8 @@ export const sanshoJp = table({
   "Gino-sho": "技能賞",
 });
 
-/** The 82 winning techniques plus non-technique results (official JSA list). */
-export const kimariteJp = table({
-  // 基本技
-  tsukidashi: "突き出し", tsukitaoshi: "突き倒し", oshidashi: "押し出し", oshitaoshi: "押し倒し",
-  yorikiri: "寄り切り", yoritaoshi: "寄り倒し", abisetaoshi: "浴びせ倒し",
-  // 投げ手
-  uwatenage: "上手投げ", shitatenage: "下手投げ", kotenage: "小手投げ", sukuinage: "掬い投げ",
-  uwatedashinage: "上手出し投げ", shitatedashinage: "下手出し投げ", koshinage: "腰投げ", kubinage: "首投げ",
-  ipponzeoi: "一本背負い", nichonage: "二丁投げ", yaguranage: "櫓投げ", kakenage: "掛け投げ", tsukaminage: "つかみ投げ",
-  // 掛け手
-  uchigake: "内掛け", sotogake: "外掛け", chongake: "ちょん掛け", kirikaeshi: "切り返し", kawazugake: "河津掛け",
-  kekaeshi: "蹴返し", ketaguri: "蹴手繰り", mitokorozeme: "三所攻め", watashikomi: "渡し込み", nimaigeri: "二枚蹴り",
-  komatasukui: "小股掬い", sotokomata: "外小股", omata: "大股", tsumatori: "褄取り", kozumatori: "小褄取り",
-  ashitori: "足取り", susoharai: "裾払い", susotori: "裾取り",
-  // 反り手
-  izori: "居反り", shumokuzori: "撞木反り", kakezori: "掛け反り", tasukizori: "襷反り",
-  sototasukizori: "外襷反り", tsutaezori: "伝え反り",
-  // 捻り手
-  tsukiotoshi: "突き落とし", makiotoshi: "巻き落とし", tottari: "とったり", sakatottari: "逆とったり",
-  katasukashi: "肩透かし", sotomuso: "外無双", uchimuso: "内無双", zubuneri: "ずぶねり", uwatehineri: "上手捻り",
-  shitatehineri: "下手捻り", amiuchi: "網打ち", sabaori: "鯖折り", harimanage: "波離間投げ", osakate: "大逆手",
-  kainahineri: "腕捻り", gasshohineri: "合掌捻り", tokkurinage: "徳利投げ", kubihineri: "首捻り", kotehineri: "小手捻り",
-  // 特殊技
-  hikiotoshi: "引き落とし", hikkake: "引っ掛け", hatakikomi: "叩き込み", sokubiotoshi: "素首落とし",
-  tsuridashi: "吊り出し", okuritsuridashi: "送り吊り出し", tsuriotoshi: "吊り落とし", okuritsuriotoshi: "送り吊り落とし",
-  okuridashi: "送り出し", okuritaoshi: "送り倒し", okurinage: "送り投げ", okurigake: "送り掛け",
-  okurihikiotoshi: "送り引き落とし", waridashi: "割り出し", utchari: "うっちゃり", kimedashi: "極め出し",
-  kimetaoshi: "極め倒し", ushiromotare: "後ろもたれ", yobimodoshi: "呼び戻し",
-  // 勝負結果 (non-techniques)
-  isamiashi: "勇み足", koshikudake: "腰砕け", tsukite: "つき手", tsukihiza: "つきひざ", fumidashi: "踏み出し",
-  fusen: "不戦", hansoku: "反則",
-});
+/** Japanese for every kimarite — sourced from the shared technique list in ./kimarite. */
+export const kimariteJp = (romaji?: string) => findKimarite(romaji)?.jp;
 
 /** Sumo stables (current and recently closed). */
 export const heyaJp = table({

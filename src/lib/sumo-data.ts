@@ -375,3 +375,32 @@ async function cachedRikishiProfile(id: number): Promise<Result<RikishiProfile>>
 }
 
 export const getRikishiProfile = unwrap(cachedRikishiProfile, { kimariteWins: [], kimariteLosses: [], bashoResults: [] } as RikishiProfile);
+
+// ---------- Kimarite ----------
+
+/** All-time usage of every kimarite: name -> { count, lastUsage ("YYYYMM-day") }. One call, cached a day. */
+async function cachedKimariteStats(): Promise<Result<Record<string, { count: number; lastUsage: string }>>> {
+  "use cache";
+  cacheTag("kimarite");
+  const r = await attempt(sumoApi.kimarite({ sortField: "count", sortOrder: "desc", limit: 200 }));
+  setLife(r.ok, "settled");
+  if (!r.ok) return r;
+  return { ok: true, data: Object.fromEntries((r.data?.records ?? []).map((k) => [k.kimarite, { count: k.count, lastUsage: k.lastUsage }])) };
+}
+
+/**
+ * Most recent sekitori (Makuuchi/Juryo) bouts won with a kimarite. The endpoint covers every division and
+ * can't filter by one, so we read the latest 400 and keep the top two divisions.
+ */
+async function cachedKimariteBouts(name: string): Promise<Result<Match[]>> {
+  "use cache";
+  cacheTag("kimarite");
+  const r = await attempt(sumoApi.kimariteMatches(name, { sortOrder: "desc", limit: 400 }));
+  setLife(r.ok, "hours");
+  if (!r.ok) return r;
+  const top = (r.data?.records ?? []).filter((m) => m.division === "Makuuchi" || m.division === "Juryo");
+  return { ok: true, data: top.slice(0, 30) };
+}
+
+export const getKimariteStats = unwrap(cachedKimariteStats, {} as Record<string, { count: number; lastUsage: string }>);
+export const getKimariteBouts = unwrap(cachedKimariteBouts, [] as Match[]);

@@ -1,3 +1,4 @@
+import { KimariteTerm } from "@/components/kimarite-term";
 import { divisionJp, heyaJp, kimariteJp, rankJp, sanshoJp, shusshinJp, termJp } from "@/lib/glossary";
 
 const LOOKUP = {
@@ -14,11 +15,23 @@ const LOOKUP = {
  * Romaji followed by its Japanese in smaller type, e.g. "yorikiri 寄り切り".
  * Renders the romaji alone when the term isn't in the glossary.
  */
-export function Romaji({ text, kind, jp }: { text?: string | null; kind: keyof typeof LOOKUP; jp?: string }) {
+export function Romaji({
+  text,
+  kind,
+  jp,
+  link = true,
+}: {
+  text?: string | null;
+  kind: keyof typeof LOOKUP;
+  jp?: string;
+  /** Kimarite only: link to the technique page. Set false when already inside a link. */
+  link?: boolean;
+}) {
   if (!text) return null;
+  // Kimarite get a hover explanation and link to /kimarite/<name>.
+  if (kind === "kimarite") return <KimariteTerm name={text} jp={jp} link={link} />;
   const j = jp ?? LOOKUP[kind](text);
-  // The API sends kimarite in lower case ("oshidashi"); show them capitalised ("Oshidashi").
-  const shown = kind === "kimarite" ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+  const shown = text;
   return (
     <>
       {shown}

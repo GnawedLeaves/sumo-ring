@@ -202,6 +202,9 @@ export const sumoApi = {
 
   kimarite: (q: { sortField?: "count" | "kimarite" | "lastUsage"; sortOrder?: "asc" | "desc"; limit?: number; skip?: number } = {}) =>
     get<Paged<KimariteStat>>("/api/kimarite", q),
+  /** Bouts won with one kimarite, all divisions. Hard limit 1000 per call. */
+  kimariteMatches: (kimarite: string, q: { sortOrder?: "asc" | "desc"; limit?: number; skip?: number } = {}) =>
+    get<Paged<Match>>(`/api/kimarite/${encodeURIComponent(kimarite)}`, q),
 
   // NOTE: POST /api/rikishis/matches (bulk head-to-head) returned empty results for known pairs when
   // tested in Nov 2026, so the app uses the per-pair headToHead endpoint instead.

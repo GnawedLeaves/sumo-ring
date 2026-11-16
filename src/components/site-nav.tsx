@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronDown, CircleDot, Ellipsis, ImageUp, MonitorPlay, Newspaper, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronDown, CircleDot, Ellipsis, ImageUp, MonitorPlay, Newspaper, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
@@ -14,7 +14,10 @@ export const NAV_ITEMS = [
 ] as const;
 
 /** Extra pages, tucked into the "Others" dropdown. Add new ones here. */
-export const OTHER_ITEMS = [{ href: "/portraits", label: "Rikishi portraits", icon: ImageUp }] as const;
+export const OTHER_ITEMS = [
+  { href: "/portraits", label: "Rikishi portraits", icon: ImageUp },
+  { href: "/kimarite", label: "Kimarite (techniques)", icon: BookOpen },
+] as const;
 
 type IsActive = (href: string) => boolean;
 const none: IsActive = () => false;
