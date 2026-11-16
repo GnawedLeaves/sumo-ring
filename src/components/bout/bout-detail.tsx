@@ -12,7 +12,7 @@ import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
-import type { Match } from "@/lib/sumo-api";
+import type { Match, RankChange, Rikishi } from "@/lib/sumo-api";
 import { Romaji } from "@/components/jp";
 
 type Props = {
@@ -168,6 +168,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
               ["Career", e.stats && record(e.stats.totalWins, e.stats.totalLosses), w.stats && record(w.stats.totalWins, w.stats.totalLosses)],
               ["Win rate", e.stats && pct(e.stats.totalWins, e.stats.totalWins + e.stats.totalLosses), w.stats && pct(w.stats.totalWins, w.stats.totalWins + w.stats.totalLosses)],
               ["Makuuchi yūshō", e.stats?.yushoByDivision?.Makuuchi ?? 0, w.stats?.yushoByDivision?.Makuuchi ?? 0],
+              ["Highest rank", <HighestRank key="e" r={e.r} />, <HighestRank key="w" r={w.r} />],
               ["Top kimarite", <Romaji key="e" text={e.profile.kimariteWins[0]?.[0]} kind="kimarite" />, <Romaji key="w" text={w.profile.kimariteWins[0]?.[0]} kind="kimarite" />],
             ].map(([label, a, c]) => (
               <tr key={String(label)} className="border-t border-line">
@@ -208,6 +209,21 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} />
       </Suspense>
     </article>
+  );
+}
+
+/** Career-best rank (lowest rankValue) and the basho it was first reached. */
+function HighestRank({ r }: { r: Rikishi | null }) {
+  const best = (r?.rankHistory ?? []).reduce<RankChange | undefined>(
+    (acc, cur) => (!acc || cur.rankValue < acc.rankValue || (cur.rankValue === acc.rankValue && cur.bashoId < acc.bashoId) ? cur : acc),
+    undefined,
+  );
+  if (!best) return "—";
+  return (
+    <>
+      <Romaji text={best.rank} kind="rank" />
+      <span className="block text-caption font-normal text-ink-soft">{yyyymm(best.bashoId)}</span>
+    </>
   );
 }
 
