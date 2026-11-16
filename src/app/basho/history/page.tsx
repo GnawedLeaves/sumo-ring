@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BashoPicker } from "@/components/basho/basho-picker";
@@ -13,7 +14,7 @@ export default function Page() {
     <section className="page flex flex-col gap-10">
       <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Basho<span lang="ja" className="ml-2 font-jp text-[0.6em] font-normal">場所</span></h1>
       <BashoTabs active="history" />
-      <Suspense fallback={<p className="text-body-sm">Loading past basho…</p>}>
+      <Suspense fallback={<Spinner label="Loading past basho" />}>
         <History />
       </Suspense>
     </section>

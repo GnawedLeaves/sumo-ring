@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { BASHO_NAMES, bashoId, bashoWindow, formatDateRange, latestStartedBashoId, nextBashoIds, parseBashoId } from "@/lib/basho";
+import { Spinner } from "@/components/spinner";
 
 // One shared 1-second clock for every countdown on the page.
 let now = 0;
@@ -36,7 +37,7 @@ function split(ms: number) {
 /** Upcoming basho with live countdowns + a year-at-a-glance grid. Rendered client-side because it depends on "now". */
 export function BashoCalendar({ apiStarts }: { apiStarts: Record<string, string> }) {
   const t = useSyncExternalStore(subscribe, getNow, getServerNow);
-  if (!t) return <p className="text-body-sm">Loading calendar…</p>;
+  if (!t) return <Spinner label="Loading calendar" />;
 
   const current = new Date(t);
   const latest = latestStartedBashoId(current);

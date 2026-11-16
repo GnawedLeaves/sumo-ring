@@ -8,6 +8,7 @@ import { bashoName } from "@/lib/basho";
 import { boutId } from "@/lib/format";
 import { KIMARITE, KIMARITE_CATEGORIES, capitalise, findKimarite } from "@/lib/kimarite";
 import { getKimariteBouts, getKimariteStats } from "@/lib/sumo-data";
+import { Spinner } from "@/components/spinner";
 
 const fmt = new Intl.NumberFormat("en-GB");
 
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<"/kimarite/[name]">
 export default function Page({ params }: PageProps<"/kimarite/[name]">) {
   return (
     <section className="page flex flex-col gap-10">
-      <Suspense fallback={<p className="text-body-sm">Loading technique…</p>}>
+      <Suspense fallback={<Spinner label="Loading technique" />}>
         <Technique params={params} />
       </Suspense>
     </section>

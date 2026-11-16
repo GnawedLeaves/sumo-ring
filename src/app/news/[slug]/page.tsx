@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -7,7 +8,7 @@ import { formatDate } from "@/lib/format";
 export default function Page({ params }: PageProps<"/news/[slug]">) {
   return (
     <section className="page">
-      <Suspense fallback={<p className="text-body-sm">Loading article…</p>}>
+      <Suspense fallback={<Spinner label="Loading article" />}>
         <Article params={params} />
       </Suspense>
     </section>

@@ -11,6 +11,7 @@ import { clearHistory, historySnapshot, pushHistory, serverHistorySnapshot, subs
 import type { RikishiIndexEntry } from "@/lib/sumo-data";
 import { Romaji } from "@/components/jp";
 import { Portrait } from "@/components/portrait";
+import { Spinner } from "@/components/spinner";
 
 /** List rows carry the Hygraph portrait URL when one exists. */
 type Row = RikishiIndexEntry & { portrait?: string };
@@ -175,7 +176,7 @@ function SearchBox({ query, setQuery, onSubmit }: { query: string; setQuery: (q:
               </ul>
             </>
           ) : loading && visible.length === 0 ? (
-            <p className="px-5 py-3 text-body-sm text-ink-soft">Searching…</p>
+            <Spinner label="Searching" size="sm" />
           ) : visible.length === 0 ? (
             <p className="px-5 py-3 text-body-sm text-ink-soft">No matches. Press Enter to filter the list.</p>
           ) : (
@@ -283,7 +284,13 @@ function RikishiList({ status, filter }: { status: Status; filter: string }) {
         </section>
       ))}
       <div ref={sentinel} aria-hidden className="h-1" />
-      {loading && <p className="text-center text-body-sm text-ink-soft">{status === "inactive" && rows.length === 0 ? "Loading the full roster — first load can take a few seconds…" : "Loading…"}</p>}
+      {loading && (
+        <Spinner
+          label="Loading rikishi"
+          size={rows.length ? "sm" : "md"}
+          hint={status === "inactive" && rows.length === 0 ? "First load of the full roster can take a few seconds" : undefined}
+        />
+      )}
       {error && (
         <button type="button" onClick={() => { setError(false); loadMore(); }} className="btn-pill self-center bg-cobalt-stage">
           Retry

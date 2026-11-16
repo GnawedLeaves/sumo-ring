@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -23,7 +24,7 @@ export default function Page() {
         </h1>
         <p className="text-body-sm text-ink-soft">Top-division wrestlers. Upload a photo to replace the coloured placeholder everywhere on the site.</p>
       </header>
-      <Suspense fallback={<p className="text-body-sm">Loading the banzuke…</p>}>
+      <Suspense fallback={<Spinner label="Loading the banzuke" />}>
         <PortraitList />
       </Suspense>
     </section>

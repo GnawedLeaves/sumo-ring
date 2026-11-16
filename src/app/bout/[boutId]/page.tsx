@@ -5,11 +5,12 @@ import { BoutDetail } from "@/components/bout/bout-detail";
 import { bashoName } from "@/lib/basho";
 import { parseBoutId } from "@/lib/format";
 import { getLiveContext } from "@/lib/live";
+import { Spinner } from "@/components/spinner";
 
 export default function Page({ params }: PageProps<"/bout/[boutId]">) {
   return (
     <section className="page">
-      <Suspense fallback={<p className="text-body-sm">Loading bout…</p>}>
+      <Suspense fallback={<Spinner label="Loading bout" />}>
         <Bout params={params} />
       </Suspense>
     </section>

@@ -17,6 +17,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import { clientAuth, clientDb, firebaseConfigured } from "@/lib/auth/firebase-client";
+import { Spinner } from "@/components/spinner";
 
 type Comment = { id: string; uid: string; name: string; text: string; createdAt: Timestamp | null };
 
@@ -136,7 +137,7 @@ export function BoutComments({ boutId, title }: { boutId: string; title: string 
       {loadError ? (
         <p className="text-body-sm text-ink-soft">{loadError}</p>
       ) : comments === null ? (
-        <p className="text-body-sm text-ink-soft">Loading comments…</p>
+        <Spinner label="Loading comments" size="sm" />
       ) : comments.length === 0 ? (
         <p className="text-body-sm text-ink-soft">No comments yet — be the first.</p>
       ) : (

@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -23,7 +24,7 @@ export default function Page({ params, searchParams }: PageProps<"/basho/[bashoI
   return (
     <section className="page flex flex-col gap-10">
       <BashoTabs active="history" />
-      <Suspense fallback={<p className="text-body-sm">Loading basho…</p>}>
+      <Suspense fallback={<Spinner label="Loading basho" />}>
         <BashoDetail params={params} searchParams={searchParams} />
       </Suspense>
     </section>
@@ -132,7 +133,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
         </aside>
         <div className="min-w-0">
           {selected ? (
-            <Suspense key={selected} fallback={<p className="text-body-sm">Loading bout…</p>}>
+            <Suspense key={selected} fallback={<Spinner label="Loading bout" />}>
               <BoutDetail boutId={selected} live={live} />
             </Suspense>
           ) : (

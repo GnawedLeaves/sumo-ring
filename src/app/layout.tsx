@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Noto_Sans_JP } from "next/font/google";
+import { ViewTransition } from "react";
 import { ServiceWorker } from "@/components/service-worker";
 import { SiteHeader } from "@/components/site-header";
 import { MobileNav } from "@/components/site-nav";
@@ -53,7 +54,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <SiteHeader />
         {/* Bottom padding keeps content clear of the fixed mobile tab bar. */}
-        <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
+        <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+          {/* Crossfades the page on navigation and when loading states resolve (styles: .page-fade in globals.css). */}
+          <ViewTransition default="page-fade">{children}</ViewTransition>
+        </main>
         <MobileNav />
         <ServiceWorker />
       </body>

@@ -6,6 +6,7 @@ import { Podium } from "@/components/basho/podium";
 import { LiveIndicator } from "@/components/live-indicator";
 import type { HistoryItem } from "@/lib/basho-history";
 import { useInfiniteScroll } from "@/lib/use-infinite-scroll";
+import { Spinner } from "@/components/spinner";
 
 type Page = { items: HistoryItem[]; portraits: Record<number, string>; total: number; nextSkip: number };
 
@@ -80,7 +81,7 @@ export function HistoryList({ initial }: { initial: Page }) {
         ))}
       </ul>
       <div ref={sentinel} aria-hidden className="h-1" />
-      {loading && <p className="text-center text-body-sm text-ink-soft">Loading older basho…</p>}
+      {loading && <Spinner label="Loading older basho" size="sm" />}
       {error && (
         <button
           type="button"

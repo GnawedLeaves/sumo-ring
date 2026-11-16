@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import { Play } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -181,7 +182,7 @@ async function LiveSidebar() {
             </p>
           )}
           {/* key: remount (and show the fallback) when the bout changes */}
-          <Suspense key={boutId(current.bout)} fallback={<p className="text-body-sm">Loading bout…</p>}>
+          <Suspense key={boutId(current.bout)} fallback={<Spinner label="Loading bout" />}>
             <BoutDetail boutId={boutId(current.bout)} live compact />
           </Suspense>
           <Link href={`/basho?bout=${boutId(current.bout)}`} className="link-accent self-start border-electric-teal text-body-sm">

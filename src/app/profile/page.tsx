@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -11,7 +12,7 @@ export default function Page() {
   return (
     <section className="page flex flex-col gap-10">
       <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">Profile</h1>
-      <Suspense fallback={<p className="text-center text-body-sm">Loading…</p>}>
+      <Suspense fallback={<Spinner label="Loading" />}>
         <Profile />
       </Suspense>
       <div className="mx-auto w-full max-w-md">

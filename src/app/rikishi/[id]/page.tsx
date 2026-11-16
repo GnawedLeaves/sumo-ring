@@ -7,10 +7,11 @@ import { Romaji } from "@/components/jp";
 import { getPortraitMap } from "@/lib/content";
 import { formatDate, pct, record, shikonaOnly, topEntries, yyyymm } from "@/lib/format";
 import { getRikishi, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
+import { Spinner } from "@/components/spinner";
 
 export default function Page({ params }: PageProps<"/rikishi/[id]">) {
   return (
-    <Suspense fallback={<section className="page text-body-sm">Loading rikishi…</section>}>
+    <Suspense fallback={<section className="page"><Spinner label="Loading rikishi" /></section>}>
       <RikishiDetail params={params} />
     </Suspense>
   );

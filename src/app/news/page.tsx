@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,7 +19,7 @@ export default function Page({ searchParams }: PageProps<"/news">) {
   return (
     <section className="page flex flex-col gap-10">
       <h1 className="text-center font-display text-heading sm:text-heading-lg text-brand">News</h1>
-      <Suspense fallback={<p className="text-body-sm">Loading news…</p>}>
+      <Suspense fallback={<Spinner label="Loading news" />}>
         <NewsList searchParams={searchParams} />
       </Suspense>
     </section>
