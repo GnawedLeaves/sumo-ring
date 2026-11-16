@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountButton } from "@/components/account/account-button";
 import { DesktopNav } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -12,13 +13,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-3 md:gap-5">
           <DesktopNav />
           <ThemeToggle />
-          <Link
-            href="/profile"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-electric-teal text-caption font-bold text-black"
-            aria-label="Account"
-          >
-            ME
-          </Link>
+          <AccountButton />
         </div>
       </div>
     </header>

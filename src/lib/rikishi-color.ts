@@ -4,6 +4,9 @@
 /** Tailwind background classes, in palette order. (Full class names so Tailwind picks them up.) */
 const COLORS = ["bg-cobalt-stage", "bg-tangerine-pop", "bg-plum-velvet", "bg-rose-petal", "bg-vermillion"] as const;
 
+/** Number of palette colours (user profiles pick one at random). */
+export const TONE_COUNT = COLORS.length;
+
 export type ToneIndex = number;
 
 /** A rikishi's own colour index, stable across the app. */

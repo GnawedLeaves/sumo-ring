@@ -12,12 +12,14 @@ import {
   type User,
 } from "firebase/auth";
 import { clientAuth, firebaseConfigured } from "@/lib/auth/firebase-client";
+import { useAuth } from "@/components/account/auth-provider";
 
 const input = "w-full border border-line bg-surface px-4 py-3 text-body";
 
 /** Sign in / sign up with Firebase, then trade the ID token for a server session cookie. */
 export function LoginForm() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [mode, setMode] = useState<"in" | "up">("in");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,6 +40,8 @@ export function LoginForm() {
     if (!res.ok && res.status !== 503) throw new Error(body.error ?? "Could not start session");
     // Admin claim was just added/removed: refresh the token so Firestore rules see it now.
     if (body.claimChanged) await user.getIdToken(true);
+    // The session call just created the profile (random colour) for a new account: load it for the header.
+    await refresh();
     // Return to where the user came from (e.g. a bout's comments). Same-site paths only.
     const next = new URLSearchParams(window.location.search).get("next");
     router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/profile");

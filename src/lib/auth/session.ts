@@ -1,6 +1,7 @@
 // Data access layer for the signed-in viewer. Reads the Firebase session cookie set by /api/session.
 import "server-only";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { cache } from "react";
 import { isAdminIdentity } from "./admins";
 import { adminAuth, adminConfigured } from "./firebase-admin";
@@ -23,6 +24,9 @@ export const adminOpenToAll = process.env.ADMIN_OPEN === "true";
 export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   const cookie = (await cookies()).get(SESSION_COOKIE)?.value;
   if (cookie && adminConfigured) {
+    // Verifying reads the clock (expiry) and calls Firebase, so it must run per request, never in a
+    // prerender/runtime prefetch where the cookie may be visible but time is frozen.
+    await connection();
     try {
       // checkRevoked: a disabled or signed-out-everywhere account loses access straight away.
       const claims = await (await adminAuth()).verifySessionCookie(cookie, true);
@@ -44,6 +48,13 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
 export async function isAdmin() {
   if (adminOpenToAll) return true;
   return (await getViewer())?.admin === true;
+}
+
+/** The signed-in user, or throws. For actions any user may take on their own account. */
+export async function requireUser() {
+  const viewer = await getViewer();
+  if (!viewer) throw new Error("Please sign in again.");
+  return viewer;
 }
 
 /** Call at the top of every mutating server action / route handler. */

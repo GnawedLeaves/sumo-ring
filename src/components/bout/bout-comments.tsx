@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { useEffect, useRef, useState } from "react";
 import {
   addDoc,
   collection,
@@ -16,7 +15,10 @@ import {
   serverTimestamp,
   type Timestamp,
 } from "firebase/firestore";
-import { clientAuth, clientDb, firebaseConfigured } from "@/lib/auth/firebase-client";
+import { clientDb, firebaseConfigured } from "@/lib/auth/firebase-client";
+import { cachedProfile, fallbackColor, loadProfiles } from "@/lib/profile-client";
+import { useAuth } from "@/components/account/auth-provider";
+import { UserAvatar } from "@/components/account/user-avatar";
 import { Spinner } from "@/components/spinner";
 
 type Comment = { id: string; uid: string; name: string; text: string; createdAt: Timestamp | null };
@@ -32,24 +34,38 @@ const when = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", 
  */
 export function BoutComments({ boutId, title }: { boutId: string; title: string }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, isAdmin, profile: myProfile } = useAuth();
   const [comments, setComments] = useState<Comment[] | null>(null);
+  // Bumped when commenters' profiles (colour/avatar) finish loading.
+  const [, setProfilesLoaded] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!firebaseConfigured) return;
-    return onAuthStateChanged(clientAuth(), async (u) => {
-      setUser(u);
-      setIsAdmin(u ? (await u.getIdTokenResult()).claims.admin === true : false);
-    });
-  }, []);
+  // Live updates only while the thread is near the screen and the tab is visible. Each open listener keeps a
+  // Firestore connection polling, so offscreen or background threads disconnect (and reconnect on return).
+  const sectionRef = useRef<HTMLElement>(null);
+  const [nearScreen, setNearScreen] = useState(false);
+  const [tabVisible, setTabVisible] = useState(true);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setNearScreen(entry.isIntersecting), { rootMargin: "400px 0px" });
+    io.observe(el);
+    const onVis = () => setTabVisible(document.visibilityState === "visible");
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  const listening = firebaseConfigured && nearScreen && tabVisible;
+  useEffect(() => {
+    if (!listening) return;
     const q = query(collection(clientDb(), "bouts", boutId, "comments"), orderBy("createdAt", "desc"), limit(SHOW));
     return onSnapshot(
       q,
@@ -59,7 +75,24 @@ export function BoutComments({ boutId, title }: { boutId: string; title: string 
       },
       (err) => setLoadError(err.code === "permission-denied" ? "Comments aren't set up yet (Firestore rules)." : "Couldn't load comments."),
     );
-  }, [boutId]);
+  }, [boutId, listening]);
+
+  // Commenters' colours/avatars: one batched read for any not seen yet this session.
+  const uidsKey = [...new Set((comments ?? []).map((c) => c.uid))].sort().join(",");
+  useEffect(() => {
+    if (!uidsKey) return;
+    let live = true;
+    loadProfiles(uidsKey.split(",")).then(() => live && setProfilesLoaded((n) => n + 1));
+    return () => {
+      live = false;
+    };
+  }, [uidsKey]);
+
+  const avatarFor = (c: Comment) => {
+    // Your own comments follow your current picture straight away (e.g. right after changing it).
+    const p = user?.uid === c.uid && myProfile ? myProfile : cachedProfile(c.uid);
+    return <UserAvatar name={c.name} color={p?.color ?? fallbackColor(c.uid)} photoURL={p?.photoURL} size="sm" />;
+  };
 
   if (!firebaseConfigured) return null;
 
@@ -96,7 +129,7 @@ export function BoutComments({ boutId, title }: { boutId: string; title: string 
   };
 
   return (
-    <section className="flex flex-col gap-4" aria-label={`Comments on ${title}`}>
+    <section ref={sectionRef} className="flex flex-col gap-4" aria-label={`Comments on ${title}`}>
       <h3 className="font-display text-subheading text-brand">
         Comments{comments && comments.length > 0 ? ` (${comments.length}${comments.length === SHOW ? "+" : ""})` : ""}
       </h3>
@@ -143,19 +176,22 @@ export function BoutComments({ boutId, title }: { boutId: string; title: string 
       ) : (
         <ul className="divide-y divide-line border-y border-line">
           {comments.map((c) => (
-            <li key={c.id} className="flex flex-col gap-1 py-3">
-              <div className="flex items-baseline justify-between gap-3 text-caption text-ink-soft">
-                <span>
-                  <strong className="text-body-sm text-ink">{c.name}</strong>
-                  {c.createdAt && <> · {when.format(c.createdAt.toDate())}</>}
-                </span>
-                {user && (user.uid === c.uid || isAdmin) && (
-                  <button type="button" onClick={() => remove(c)} className="text-crimson-spotlight underline">
-                    Delete
-                  </button>
-                )}
+            <li key={c.id} className="flex gap-3 py-3">
+              {avatarFor(c)}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-3 text-caption text-ink-soft">
+                  <span>
+                    <strong className="text-body-sm text-ink">{c.name}</strong>
+                    {c.createdAt && <> · {when.format(c.createdAt.toDate())}</>}
+                  </span>
+                  {user && (user.uid === c.uid || isAdmin) && (
+                    <button type="button" onClick={() => remove(c)} className="text-crimson-spotlight underline">
+                      Delete
+                    </button>
+                  )}
+                </div>
+                <p className="whitespace-pre-line break-words text-body-sm">{c.text}</p>
               </div>
-              <p className="whitespace-pre-line break-words text-body-sm">{c.text}</p>
             </li>
           ))}
         </ul>

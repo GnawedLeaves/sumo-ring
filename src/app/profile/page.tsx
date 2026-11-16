@@ -4,6 +4,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { SignOutButton } from "@/components/account/sign-out-button";
 import { SearchHistoryList } from "@/components/account/search-history-list";
+import { AvatarEditor } from "@/components/account/avatar-editor";
+import { DisplayNameForm } from "@/components/account/display-name-form";
+import { adminAuth } from "@/lib/auth/firebase-admin";
 import { getViewer } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Profile · Sumo Ring" };
@@ -34,9 +37,12 @@ async function Profile() {
       </div>
     );
   }
+  // The session cookie holds the name from sign-in time; read the current one so a rename shows at once.
+  const name = (await (await adminAuth()).getUser(viewer.uid).catch(() => null))?.displayName ?? viewer.name;
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-card border border-line bg-surface p-6">
-      <p className="font-display text-heading font-bold text-brand">{viewer.name ?? viewer.email ?? "Rikishi fan"}</p>
+      <AvatarEditor />
+      <p className="font-display text-heading font-bold text-brand">{name ?? viewer.email ?? "Rikishi fan"}</p>
       {viewer.email && <p className="text-body-sm">{viewer.email}</p>}
       {viewer.admin && <span className="badge self-start">ADMIN</span>}
       {viewer.email && !viewer.emailVerified && (
@@ -44,6 +50,7 @@ async function Profile() {
           Email not verified yet — use the link we emailed you (or sign in with Google), then sign out and back in.
         </p>
       )}
+      <DisplayNameForm initial={name ?? ""} />
       <SignOutButton />
     </div>
   );

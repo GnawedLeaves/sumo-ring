@@ -2,6 +2,7 @@
 import { cookies } from "next/headers";
 import { adminAuth, adminConfigured } from "@/lib/auth/firebase-admin";
 import { isAdminIdentity } from "@/lib/auth/admins";
+import { ensureProfile } from "@/lib/profiles";
 import { SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       await auth.setCustomUserClaims(decoded.uid, { ...(user.customClaims ?? {}), admin });
       claimChanged = true;
     }
+    // First sign-in: give the account its random palette colour (no-op afterwards). Best-effort — a
+    // Firestore hiccup shouldn't block signing in; the browser falls back to a colour derived from the uid.
+    await ensureProfile(decoded.uid).catch((e) => console.error("[session] ensureProfile failed", e));
     const session = await auth.createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
     (await cookies()).set(SESSION_COOKIE, session, {
       httpOnly: true,

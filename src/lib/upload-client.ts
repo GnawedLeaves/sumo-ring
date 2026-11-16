@@ -1,6 +1,6 @@
 // Browser-side helpers for uploading a file straight to Hygraph's asset storage (clips, portraits).
 import { checkClipUpload } from "@/lib/actions";
-import type { UploadTarget } from "@/lib/content/types";
+import type { UploadStatus, UploadTarget } from "@/lib/content/types";
 
 const POLL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
@@ -20,11 +20,18 @@ export function sendToStorage(target: UploadTarget, file: File, onProgress: (pct
   });
 }
 
-/** Hygraph processes an asset before serving it; wait for ASSET_UPLOAD_COMPLETE. */
-export async function waitUntilProcessed(assetId: string, what = "file") {
+/**
+ * Hygraph processes an asset before serving it; wait for ASSET_UPLOAD_COMPLETE.
+ * `check` defaults to the admin clip check; user uploads (avatars) pass their own.
+ */
+export async function waitUntilProcessed(
+  assetId: string,
+  what = "file",
+  check: (id: string) => Promise<UploadStatus | null> = checkClipUpload,
+) {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const s = await checkClipUpload(assetId);
+    const s = await check(assetId);
     if (s?.status === "complete") return;
     if (s?.status === "error") throw new Error(s.error ?? `Hygraph couldn't process this ${what}`);
     await new Promise((r) => setTimeout(r, POLL_MS));

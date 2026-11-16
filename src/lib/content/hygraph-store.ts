@@ -149,19 +149,27 @@ export const hygraphStore: ContentStore = {
   async getUploadStatus(assetId) {
     // Enum verified against a live project (Nov 2026): ASSET_CREATE_PENDING | ASSET_UPLOAD_COMPLETE |
     // ASSET_UPDATE_PENDING | ASSET_ERROR_UPLOAD.
-    const d = await gql<{ asset: { url: string; upload: { status: string; error?: { message: string } | null } | null } | null }>(
-      `query($id: ID!) { asset(where: { id: $id }) { url upload { status error { message } } } }`,
-      { id: assetId },
-    );
+    const d = await gql<{
+      asset: { url: string; mimeType?: string | null; size?: number | null; upload: { status: string; error?: { message: string } | null } | null } | null;
+    }>(`query($id: ID!) { asset(where: { id: $id }) { url mimeType size upload { status error { message } } } }`, { id: assetId });
     if (!d.asset) return null;
     const s = d.asset.upload?.status;
     // Read-only on purpose: this is polled every couple of seconds, and Hygraph rate-limits writes.
     // The asset is published once, when the clip/portrait that uses it is saved (publishUpload).
     const status = s === "ASSET_UPLOAD_COMPLETE" ? "complete" : s === "ASSET_ERROR_UPLOAD" ? "error" : "pending";
-    return { status, url: d.asset.url, error: d.asset.upload?.error?.message };
+    return {
+      status,
+      url: d.asset.url,
+      error: d.asset.upload?.error?.message,
+      mimeType: d.asset.mimeType ?? undefined,
+      size: d.asset.size ?? undefined,
+    };
   },
   async publishUpload(assetId) {
     await publish("Asset", assetId);
+  },
+  async deleteUpload(assetId) {
+    await gql(`mutation($id: ID!) { deleteAsset(where: { id: $id }) { id } }`, { id: assetId });
   },
 
   async listNews() {

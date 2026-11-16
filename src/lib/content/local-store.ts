@@ -77,6 +77,9 @@ export const localStore: ContentStore = {
   async publishUpload() {
     // nothing to publish locally
   },
+  async deleteUpload() {
+    // nothing stored locally
+  },
 
   async listNews() {
     return (await load()).news.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));

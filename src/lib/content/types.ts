@@ -71,6 +71,8 @@ export interface ContentStore {
   getUploadStatus(assetId: string): Promise<UploadStatus | null>;
   /** Publishes an uploaded asset (once, when the clip that uses it is saved). */
   publishUpload(assetId: string): Promise<void>;
+  /** Deletes an uploaded asset (e.g. a replaced avatar). */
+  deleteUpload(assetId: string): Promise<void>;
 
   listNews(): Promise<NewsArticle[]>;
   getNews(slug: string): Promise<NewsArticle | null>;
@@ -83,7 +85,7 @@ export interface ContentStore {
   setPortrait(rikishiId: number, assetId: string): Promise<void>;
 }
 
-export type UploadStatus = { status: "pending" | "complete" | "error"; url: string; error?: string };
+export type UploadStatus = { status: "pending" | "complete" | "error"; url: string; error?: string; mimeType?: string; size?: number };
 
 export type UploadTarget = {
   assetId: string;
