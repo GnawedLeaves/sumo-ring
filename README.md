@@ -18,18 +18,19 @@ npm run dev
 Open http://localhost:3000.
 
 - **No Hygraph?** Streams/clips/news are stored in `.data/content.json` instead.
-- **Admin restrictions are temporarily OFF everywhere (dev and production).** Anyone can add/edit streams and
-  upload clips. Set `ADMIN_RESTRICTED=true` (in `.env.local` and on Render) to require the Firebase admin claim.
+- **Admin features are locked** to the emails in `ADMIN_EMAILS`. For local testing only, `ADMIN_OPEN=true`
+  opens them to everyone — never set it in production.
 
 ## Admin account
 
-Admin = a Firebase user with the `admin: true` custom claim. After creating your account on `/login`:
+Admin = a signed-in user whose **verified** email is listed in `ADMIN_EMAILS` (comma-separated, server-only).
+Google sign-in counts as verified; email/password accounts must click the verification email first.
 
-```bash
-node --env-file=.env.local scripts/set-admin.mjs you@example.com
-```
-
-Then sign out and back in. Every mutation (server actions in `src/lib/actions.ts`) re-checks the claim server-side.
+- Needs the Firebase Admin service account (`FIREBASE_ADMIN_*`) so the server can verify sessions.
+- Every mutation (server actions in `src/lib/actions.ts`) re-checks the list server-side on each request.
+- On sign-in, `/api/session` also sets the Firebase `admin` custom claim to match the list; `firestore.rules`
+  uses that claim (e.g. deleting any comment). Remove an email from the list and the claim is cleared at that
+  user's next sign-in; their server-side admin access ends immediately.
 
 ## Structure
 

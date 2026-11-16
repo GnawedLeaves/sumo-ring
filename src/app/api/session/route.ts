@@ -1,6 +1,7 @@
 // Exchanges a Firebase ID token (from the client SDK) for an httpOnly session cookie, and clears it.
 import { cookies } from "next/headers";
 import { adminAuth, adminConfigured } from "@/lib/auth/firebase-admin";
+import { isAdminIdentity } from "@/lib/auth/admins";
 import { SESSION_COOKIE, SESSION_MAX_AGE_MS } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
@@ -15,6 +16,15 @@ export async function POST(request: Request) {
     if (Date.now() / 1000 - decoded.auth_time > 5 * 60) {
       return Response.json({ error: "Please sign in again." }, { status: 401 });
     }
+    // Keep the Firebase `admin` claim in step with ADMIN_EMAILS. The server decides admin access from the list
+    // on every request; the claim is what firestore.rules and the browser use (e.g. deleting any comment).
+    const admin = isAdminIdentity(decoded);
+    let claimChanged = false;
+    if ((decoded.admin === true) !== admin) {
+      const user = await auth.getUser(decoded.uid);
+      await auth.setCustomUserClaims(decoded.uid, { ...(user.customClaims ?? {}), admin });
+      claimChanged = true;
+    }
     const session = await auth.createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE_MS });
     (await cookies()).set(SESSION_COOKIE, session, {
       httpOnly: true,
@@ -23,7 +33,8 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: SESSION_MAX_AGE_MS / 1000,
     });
-    return Response.json({ admin: decoded.admin === true });
+    // claimChanged tells the browser to refresh its ID token so Firestore sees the new claim now, not in an hour.
+    return Response.json({ admin, emailVerified: decoded.email_verified === true, claimChanged });
   } catch {
     return Response.json({ error: "Invalid token" }, { status: 401 });
   }

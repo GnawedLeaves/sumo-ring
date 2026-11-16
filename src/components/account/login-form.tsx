@@ -2,7 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+  type User,
+} from "firebase/auth";
 import { clientAuth, firebaseConfigured } from "@/lib/auth/firebase-client";
 
 const input = "w-full border border-line bg-surface px-4 py-3 text-body";
@@ -26,9 +34,10 @@ export function LoginForm() {
     });
     // 503 = Firebase Admin isn't configured on the server yet. The browser is still signed in (enough for
     // comments), so carry on; only the server-rendered profile won't know about the session.
-    if (!res.ok && res.status !== 503) {
-      throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Could not start session");
-    }
+    const body = (await res.json().catch(() => ({}))) as { error?: string; claimChanged?: boolean };
+    if (!res.ok && res.status !== 503) throw new Error(body.error ?? "Could not start session");
+    // Admin claim was just added/removed: refresh the token so Firestore rules see it now.
+    if (body.claimChanged) await user.getIdToken(true);
     // Return to where the user came from (e.g. a bout's comments). Same-site paths only.
     const next = new URLSearchParams(window.location.search).get("next");
     router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/profile");
@@ -62,6 +71,8 @@ export function LoginForm() {
             if (mode === "in") return (await signInWithEmailAndPassword(auth, email, password)).user;
             const { user } = await createUserWithEmailAndPassword(auth, email, password);
             if (name) await updateProfile(user, { displayName: name });
+            // Verified email is required for admin rights; harmless for everyone else.
+            await sendEmailVerification(user).catch(() => {});
             return user;
           });
         }}

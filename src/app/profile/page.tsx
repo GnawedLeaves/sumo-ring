@@ -39,6 +39,11 @@ async function Profile() {
       <p className="font-display text-heading font-bold text-brand">{viewer.name ?? viewer.email ?? "Rikishi fan"}</p>
       {viewer.email && <p className="text-body-sm">{viewer.email}</p>}
       {viewer.admin && <span className="badge self-start">ADMIN</span>}
+      {viewer.email && !viewer.emailVerified && (
+        <p className="text-caption text-ink-soft">
+          Email not verified yet — use the link we emailed you (or sign in with Google), then sign out and back in.
+        </p>
+      )}
       <SignOutButton />
     </div>
   );
