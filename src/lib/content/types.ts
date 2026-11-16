@@ -69,6 +69,8 @@ export interface ContentStore {
   createUpload(fileName: string): Promise<UploadTarget | null>;
   /** Processing state of an uploaded asset; its URL only serves once status is "complete". */
   getUploadStatus(assetId: string): Promise<UploadStatus | null>;
+  /** Publishes an uploaded asset (once, when the clip that uses it is saved). */
+  publishUpload(assetId: string): Promise<void>;
 
   listNews(): Promise<NewsArticle[]>;
   getNews(slug: string): Promise<NewsArticle | null>;

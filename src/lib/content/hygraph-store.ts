@@ -6,22 +6,36 @@ import type { Clip, ContentStore, NewsArticle, Portrait, Stream, UploadTarget } 
 const ENDPOINT = process.env.HYGRAPH_ENDPOINT ?? "";
 const TOKEN = process.env.HYGRAPH_TOKEN ?? "";
 
+/** Waits before retrying a rate-limited request (Hygraph's free plan allows only a few writes per second). */
+const RATE_LIMIT_RETRY_MS = [1000, 2000, 4000];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function gql<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      "gcms-stage": "DRAFT",
-      ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-  const json = (await res.json()) as { data?: T; errors?: { message: string }[] };
-  if (!res.ok || json.errors?.length) {
-    throw new Error(`Hygraph: ${json.errors?.map((e) => e.message).join("; ") ?? res.status}`);
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "gcms-stage": "DRAFT",
+        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { data?: T; errors?: { message: string }[] };
+    const message = json.errors?.map((e) => e.message).join("; ");
+    // A rate-limited request was not executed, so retrying it (even a create) is safe.
+    const rateLimited = res.status === 429 || /too many requests/i.test(message ?? "");
+    if (rateLimited && attempt < RATE_LIMIT_RETRY_MS.length) {
+      const retryAfter = Number(res.headers.get("retry-after")) * 1000;
+      await sleep(retryAfter > 0 ? Math.min(retryAfter, 10_000) : RATE_LIMIT_RETRY_MS[attempt]);
+      continue;
+    }
+    if (!res.ok || json.errors?.length) {
+      throw new Error(`Hygraph: ${message ?? res.status}`);
+    }
+    return json.data as T;
   }
-  return json.data as T;
 }
 
 /**
@@ -141,10 +155,13 @@ export const hygraphStore: ContentStore = {
     );
     if (!d.asset) return null;
     const s = d.asset.upload?.status;
-    // Publish the uploaded video once it's complete so it's live alongside the published clip.
-    if (s === "ASSET_UPLOAD_COMPLETE") await publish("Asset", assetId);
+    // Read-only on purpose: this is polled every couple of seconds, and Hygraph rate-limits writes.
+    // The asset is published once, when the clip/portrait that uses it is saved (publishUpload).
     const status = s === "ASSET_UPLOAD_COMPLETE" ? "complete" : s === "ASSET_ERROR_UPLOAD" ? "error" : "pending";
     return { status, url: d.asset.url, error: d.asset.upload?.error?.message };
+  },
+  async publishUpload(assetId) {
+    await publish("Asset", assetId);
   },
 
   async listNews() {
@@ -182,6 +199,8 @@ export const hygraphStore: ContentStore = {
     return d.rikishiPortraits.filter((p) => p.image?.url).map((p) => ({ rikishiId: p.rikishiId, imageUrl: p.image!.url }));
   },
   async setPortrait(rikishiId, assetId) {
+    // Writes, in order: publish the image, link it, publish the portrait entry (gql retries if rate-limited).
+    await publish("Asset", assetId);
     // rikishiId isn't a unique field in the schema, so look the entry up rather than upserting on it.
     const found = await gql<{ rikishiPortraits: { id: string }[] }>(
       `query($rid: Int!) { rikishiPortraits(where: { rikishiId: $rid }, first: 1) { id } }`,
