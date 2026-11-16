@@ -68,3 +68,21 @@ export function shortRank(rank?: string): string {
   };
   return `${abbr[tier] ?? rank}${num}${side}`;
 }
+
+type BoutLike = { bashoId: string; day: number; division: string; matchNo: number; winnerId: number; eastId: number; westId: number; eastRank: string; westRank: string };
+
+/**
+ * Newest bout first; within a day Makuuchi before Juryo (and lower divisions), each by the winner's
+ * rank, Yokozuna down. Used for "recent wins" lists and clips of a technique.
+ */
+export function compareRecentBouts(a: BoutLike, b: BoutLike): number {
+  const div = (m: BoutLike) => ["Makuuchi", "Juryo"].indexOf(m.division) >>> 0; // unknown divisions sort last
+  const winnerRank = (m: BoutLike) => rankValue(m.winnerId === m.westId ? m.westRank : m.eastRank);
+  return (
+    b.bashoId.localeCompare(a.bashoId) ||
+    b.day - a.day ||
+    div(a) - div(b) ||
+    winnerRank(a) - winnerRank(b) ||
+    b.matchNo - a.matchNo
+  );
+}

@@ -4,7 +4,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { sumoApi, SumoApiError, type Award, type BanzukeEntry, type Division, type Match, type RankChange, type Rikishi } from "./sumo-api";
 import { latestStartedBashoId, previousBashoIds } from "./basho";
-import { rankTier, rankValue, type RankTier } from "./rank";
+import { compareRecentBouts, rankTier, rankValue, type RankTier } from "./rank";
 
 type Freshness = "live" | "settled";
 type Profile = Freshness | "hours";
@@ -395,11 +395,13 @@ async function cachedKimariteStats(): Promise<Result<Record<string, { count: num
 async function cachedKimariteBouts(name: string): Promise<Result<Match[]>> {
   "use cache";
   cacheTag("kimarite");
-  const r = await attempt(sumoApi.kimariteMatches(name, { sortOrder: "desc", limit: 400 }));
+  // The API's maximum page: wide enough to find clips of this technique as well as fill the recent list.
+  const r = await attempt(sumoApi.kimariteMatches(name, { sortOrder: "desc", limit: 1000 }));
   setLife(r.ok, "hours");
   if (!r.ok) return r;
-  const top = (r.data?.records ?? []).filter((m) => m.division === "Makuuchi" || m.division === "Juryo");
-  return { ok: true, data: top.slice(0, 30) };
+  // Most recent day first; within a day Makuuchi before Juryo, each by the winner's rank (Yokozuna down).
+  const top = (r.data?.records ?? []).filter((m) => m.division === "Makuuchi" || m.division === "Juryo").sort(compareRecentBouts);
+  return { ok: true, data: top };
 }
 
 export const getKimariteStats = unwrap(cachedKimariteStats, {} as Record<string, { count: number; lastUsage: string }>);
