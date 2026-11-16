@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { Portrait } from "@/components/portrait";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { Romaji } from "@/components/jp";
-import { getPortraitMap } from "@/lib/content";
+import { getPortraitMap, store } from "@/lib/content";
+import { PortraitUploader } from "@/components/portraits/portrait-uploader";
+import { isAdmin } from "@/lib/auth/session";
 import { formatDate, pct, record, shikonaOnly, topEntries, yyyymm } from "@/lib/format";
 import { getRikishi, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
 import { Spinner } from "@/components/spinner";
@@ -20,7 +22,13 @@ export default function Page({ params }: PageProps<"/rikishi/[id]">) {
 async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "params">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [r, stats, profile, portraits] = await Promise.all([getRikishi(id), getRikishiStats(id), getRikishiProfile(id), getPortraitMap()]);
+  const [r, stats, profile, portraits, admin] = await Promise.all([
+    getRikishi(id),
+    getRikishiStats(id),
+    getRikishiProfile(id),
+    getPortraitMap(),
+    isAdmin(),
+  ]);
   if (!r) notFound();
 
   const highest = [...(r.rankHistory ?? [])].sort((a, b) => a.rankValue - b.rankValue)[0];
@@ -43,7 +51,12 @@ async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "param
       {/* Hero */}
       <section className="bg-indigo-frame text-white">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-4 py-16 md:flex-row md:items-end md:px-6">
-          <Portrait id={r.id} en={r.shikonaEn} jp={r.shikonaJp} src={portraits[r.id]} size="xl" />
+          <div className="flex flex-col items-start gap-3">
+            <Portrait id={r.id} en={r.shikonaEn} jp={r.shikonaJp} src={portraits[r.id]} size="xl" />
+            {admin && store.kind === "hygraph" && (
+              <PortraitUploader rikishiId={r.id} name={r.shikonaEn} hasPortrait={Boolean(portraits[r.id])} onDark />
+            )}
+          </div>
           <div className="flex flex-col gap-3">
             <span className="badge self-start">{r.intai ? "RETIRED 引退" : r.currentRank ? <Romaji text={r.currentRank} kind="rank" /> : "ACTIVE"}</span>
             <h1 className="font-display text-heading sm:text-heading-lg font-bold md:text-display">{r.shikonaEn}</h1>

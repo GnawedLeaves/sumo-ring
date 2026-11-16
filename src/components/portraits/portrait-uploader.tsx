@@ -11,7 +11,18 @@ type Phase = { step: "idle" } | { step: "uploading"; pct: number } | { step: "pr
 const MAX_BYTES = 10 * 1024 * 1024;
 
 /** Upload / replace one rikishi's portrait photo: pick an image and it uploads, processes and saves on its own. */
-export function PortraitUploader({ rikishiId, name, hasPortrait }: { rikishiId: number; name: string; hasPortrait: boolean }) {
+export function PortraitUploader({
+  rikishiId,
+  name,
+  hasPortrait,
+  onDark = false,
+}: {
+  rikishiId: number;
+  name: string;
+  hasPortrait: boolean;
+  /** Light outline for use on a dark background (the rikishi page hero). */
+  onDark?: boolean;
+}) {
   const router = useRouter();
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -74,9 +85,11 @@ export function PortraitUploader({ rikishiId, name, hasPortrait }: { rikishiId: 
       <label
         htmlFor={inputId}
         aria-label={`${label} for ${name}`}
-        className={`inline-flex items-center justify-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-caption font-bold transition-colors ${
-          busy ? "pointer-events-none opacity-70" : "cursor-pointer hover:bg-hover"
-        } ${phase.step === "done" ? "border-acid-green" : ""}`}
+        className={`inline-flex items-center justify-center gap-1.5 rounded-pill border px-3 py-1.5 text-caption font-bold transition-colors ${
+          onDark ? "border-white/50" : "border-line"
+        } ${busy ? "pointer-events-none opacity-70" : `cursor-pointer ${onDark ? "hover:bg-white/10" : "hover:bg-hover"}`} ${
+          phase.step === "done" ? "border-acid-green" : ""
+        }`}
       >
         {busy ? (
           <LoaderCircle aria-hidden className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
