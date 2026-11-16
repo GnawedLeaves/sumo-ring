@@ -39,8 +39,15 @@ export async function POST(request: Request) {
     });
     // claimChanged tells the browser to refresh its ID token so Firestore sees the new claim now, not in an hour.
     return Response.json({ admin, emailVerified: decoded.email_verified === true, claimChanged });
-  } catch {
-    return Response.json({ error: "Invalid token" }, { status: 401 });
+  } catch (e) {
+    // Firebase's own token errors carry an `auth/...` code; anything else is the server failing (bad service-account
+    // key, firebase-admin failing to load…) and shouldn't be reported to the user as a bad token.
+    const code = (e as { code?: string }).code ?? "";
+    console.error("[session] sign-in failed", code, e);
+    if (/^auth\/(id-token-expired|id-token-revoked|argument-error|invalid-id-token|user-disabled)/.test(code)) {
+      return Response.json({ error: "Invalid token", code }, { status: 401 });
+    }
+    return Response.json({ error: "Sign-in failed on the server", code: code || undefined, detail: (e as Error).message }, { status: 500 });
   }
 }
 

@@ -11,6 +11,17 @@ export const adminConfigured = Boolean(
  * Node ≥ 22.12 to load. Importing it on demand (instead of at module top level) means a load failure only
  * affects the auth call that needed it — callers catch it — rather than crashing every page that imports this file.
  */
+/**
+ * The service-account key as PEM, however it was pasted: env files store it with literal \n sequences, the Vercel
+ * dashboard often keeps the surrounding quotes from the JSON file, and some copies use \r\n or real line breaks.
+ */
+function privateKey(raw: string | undefined) {
+  if (!raw) return raw;
+  let key = raw.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) key = key.slice(1, -1);
+  return key.replace(/\\r/g, "").replace(/\\n/g, "\n").replace(/\r/g, "");
+}
+
 async function adminApp() {
   if (!adminConfigured) throw new Error("Firebase Admin is not configured");
   const { cert, getApps, initializeApp } = await import("firebase-admin/app");
@@ -20,8 +31,7 @@ async function adminApp() {
       credential: cert({
         projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        // Env files store the key with literal \n sequences.
-        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+        privateKey: privateKey(process.env.FIREBASE_ADMIN_PRIVATE_KEY),
       }),
     })
   );
