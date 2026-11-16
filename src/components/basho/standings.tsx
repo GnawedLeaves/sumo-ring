@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Romaji } from "@/components/jp";
 import { RikishiName } from "@/components/rikishi-name";
-import { record } from "@/lib/format";
-import { shortRank } from "@/lib/rank";
+import { record, shikonaOnly } from "@/lib/format";
+import { CopyButton } from "@/components/copy-button";
+import { bashoInfo, bashoName } from "@/lib/basho";
+import { rankTier, shortRank } from "@/lib/rank";
 import type { BanzukeEntry } from "@/lib/sumo-api";
 
 /** Losses including absent days (an absence counts as a loss on the record, as in the official standings). */
@@ -12,6 +14,29 @@ function lossLabel(n: number) {
   return n === 0 ? "Undefeated" : `${n} loss${n === 1 ? "" : "es"}`;
 }
 
+/** Ranks from Yokozuna down to Komusubi. */
+const SANYAKU = new Set(["Yokozuna", "Ozeki", "Sekiwake", "Komusubi"]);
+
+/**
+ * Plain-text summary of the san'yaku (Yokozuna to Komusubi) for sharing, in banzuke order:
+ *   Kyushu Basho 2026 Day 9 Standings
+ *   Onosato (Y1e) 8 - 1
+ * The day is the most bouts anyone has on record, so it always matches the records shown.
+ */
+function sanyakuText(entries: BanzukeEntry[], bashoId: string, records?: Record<number, { jp?: string }>) {
+  const top = entries.filter((r) => SANYAKU.has(rankTier(r.rank))).sort((a, b) => a.rankValue - b.rankValue || (a.side === "East" ? -1 : 1));
+  if (top.length === 0) return null;
+  const day = Math.max(0, ...entries.map((r) => r.wins + r.losses + r.absences));
+  const info = bashoInfo(bashoId);
+  const basho = info ? `${info.en} Basho ${bashoId.slice(0, 4)}` : bashoName(bashoId);
+  const lines = top.map((r) => {
+    // Kanji shikona (without the given name) beside the romaji, when known.
+    const jp = shikonaOnly(r.shikonaJp || records?.[r.rikishiID]?.jp);
+    return `${r.shikonaEn}${jp ? ` ${jp}` : ""} (${shortRank(r.rank)}) ${r.wins} - ${r.losses}${r.absences ? ` - ${r.absences}` : ""}`;
+  });
+  return [`${basho}${day ? ` Day ${day}` : ""} Standings`, ...lines].join("\n");
+}
+
 /**
  * A division's standings for a basho, grouped by number of losses (fewest first, the way the yūshō race is
  * followed). Within a group: most wins first, then higher rank.
@@ -19,17 +44,32 @@ function lossLabel(n: number) {
 export function Standings({
   entries,
   division,
+  bashoId,
   records,
   compact = false,
   title = "Standings",
 }: {
   entries: BanzukeEntry[];
   division: string;
+  /** Enables the "copy san'yaku standings" button (Makuuchi only). */
+  bashoId?: string;
   records?: Record<number, { jp?: string }>;
   /** One line per loss group with name + record chips — a small summary for the top of a page. */
   compact?: boolean;
   title?: string;
 }) {
+  const shareText = bashoId && division === "Makuuchi" ? sanyakuText(entries, bashoId, records) : null;
+  const heading = (
+    <h2 className="flex items-baseline justify-between gap-2 font-display text-subheading text-brand">
+      <span className="flex items-center gap-1.5">
+        {title}
+        {shareText && <CopyButton text={shareText} label="Copy Yokozuna–Komusubi standings" />}
+      </span>
+      <span className="text-caption font-sans font-normal text-ink-soft">
+        <Romaji text={division} kind="division" />
+      </span>
+    </h2>
+  );
   const sorted = [...entries].sort((a, b) => lossesOf(a) - lossesOf(b) || b.wins - a.wins || a.rankValue - b.rankValue);
   const groups: [number, BanzukeEntry[]][] = [];
   for (const r of sorted) {
@@ -41,12 +81,7 @@ export function Standings({
   if (compact) {
     return (
       <section className="flex flex-col gap-3 border border-line bg-surface p-4 sm:p-5">
-        <h2 className="flex items-baseline justify-between gap-2 font-display text-subheading text-brand">
-          {title}
-          <span className="text-caption font-sans font-normal text-ink-soft">
-            <Romaji text={division} kind="division" />
-          </span>
-        </h2>
+        {heading}
         {sorted.length === 0 ? (
           <p className="text-body-sm text-ink-soft">No records yet.</p>
         ) : (
@@ -79,12 +114,7 @@ export function Standings({
 
   return (
     <section className="flex min-h-0 flex-col gap-3">
-      <h2 className="flex items-baseline justify-between gap-2 font-display text-subheading text-brand">
-        {title}
-        <span className="text-caption font-sans font-normal text-ink-soft">
-          <Romaji text={division} kind="division" />
-        </span>
-      </h2>
+      {heading}
       {sorted.length === 0 ? (
         <p className="text-body-sm text-ink-soft">No records yet.</p>
       ) : (

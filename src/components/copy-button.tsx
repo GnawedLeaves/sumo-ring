@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 /** Small icon button that copies `text` to the clipboard and briefly confirms with a tick. */
 export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  // Multi-line text (e.g. a standings list) is too long to read out in the tooltip/label.
+  const preview = text.includes("\n") ? "" : `: “${text}”`;
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -39,8 +41,8 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
     <button
       type="button"
       onClick={copy}
-      aria-label={copied ? "Copied" : `${label}: ${text}`}
-      title={copied ? "Copied!" : `${label}: “${text}”`}
+      aria-label={copied ? "Copied" : `${label}${preview}`}
+      title={copied ? "Copied!" : `${label}${preview}`}
       className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-hover hover:text-ink"
     >
       {copied ? <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Copy aria-hidden className="h-3.5 w-3.5" />}

@@ -115,6 +115,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
           compact
           title={standingsAfter > 0 ? `Standings after Day ${standingsAfter}` : "Standings"}
           entries={banzuke}
+          bashoId={ctx.bashoId}
           division={division}
           records={records}
         />

@@ -77,7 +77,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
           <aside className="h-fit rounded-card border border-line bg-surface p-5">
             {/* No prizes yet (basho still running): the live standings are more useful than an empty Awards panel. */}
             {(summary.specialPrizes ?? []).length === 0 && (summary.yusho ?? []).length === 0 ? (
-              <Standings entries={banzuke ?? []} division={division} records={records} />
+              <Standings entries={banzuke ?? []} division={division} bashoId={bashoId} records={records} />
             ) : (
               <>
             <h2 className="font-display text-subheading text-brand">Awards</h2>
