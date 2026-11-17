@@ -4,12 +4,12 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import type { Clip, ContentStore, NewsArticle, Portrait, Stream } from "./types";
+import type { BoutStar, Clip, ContentStore, NewsArticle, Portrait, Stream } from "./types";
 
-type Data = { streams: Stream[]; clips: Clip[]; news: NewsArticle[]; portraits: Portrait[] };
+type Data = { streams: Stream[]; clips: Clip[]; news: NewsArticle[]; portraits: Portrait[]; stars: BoutStar[] };
 
 const FILE = path.join(process.cwd(), ".data", "content.json");
-const EMPTY: Data = { streams: [], clips: [], news: [], portraits: [] };
+const EMPTY: Data = { streams: [], clips: [], news: [], portraits: [], stars: [] };
 
 async function load(): Promise<Data> {
   try {
@@ -106,5 +106,15 @@ export const localStore: ContentStore = {
   },
   async setPortrait() {
     throw new Error("Portrait uploads need Hygraph — set HYGRAPH_ENDPOINT and HYGRAPH_TOKEN.");
+  },
+
+  async listStars(bashoId) {
+    return (await load()).stars.filter((s) => s.bashoId === bashoId);
+  },
+  async setStar(star, starred) {
+    const data = await load();
+    data.stars = data.stars.filter((s) => s.boutId !== star.boutId);
+    if (starred) data.stars.push(star);
+    await save(data);
   },
 };

@@ -10,7 +10,7 @@ import { Podium } from "@/components/basho/podium";
 import { BoutDetail } from "@/components/bout/bout-detail";
 import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName, bashoWindow, formatDateRange } from "@/lib/basho";
-import { getClips, getPortraitMap } from "@/lib/content";
+import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
 import { shikonaOnly } from "@/lib/format";
 import { dayStatus, getLiveContext } from "@/lib/live";
 import { DayPicker } from "@/components/basho/day-picker";
@@ -42,13 +42,14 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
   const day = Math.min(15, Math.max(1, Number(sp.day) || (live && ctx.day) || 1));
   const freshness = live ? "live" : "settled";
 
-  const [summary, portraits, bouts, records, clips, banzuke] = await Promise.all([
+  const [summary, portraits, bouts, records, clips, banzuke, starred] = await Promise.all([
     getBashoSummary(bashoId, freshness),
     getPortraitMap(),
     getTorikumi(bashoId, day, division, freshness),
     getBashoRecords(bashoId, freshness),
     getClips({ bashoId }),
     getBanzuke(bashoId, division, freshness),
+    getStarredBouts(bashoId),
   ]);
   if (!summary) notFound();
 
@@ -112,8 +113,9 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
       {/* Day tabs | bouts | bout detail */}
       <div className="grid gap-6 md:grid-cols-[96px_280px_1fr]">
         <DayPicker vertical selected={day} statusOf={(d) => dayStatus(ctx, bashoId, d)} hrefFor={(d) => href({ day: d })} />
-        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page */}
-        <aside className="flex h-[55dvh] flex-col self-start border border-line md:sticky md:top-20 md:h-[calc(100dvh-6rem)]">
+        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page. On mobile it's inset from the screen
+            edges (mx-8) so a thumb on either side scrolls the page rather than the list. */}
+        <aside className="mx-8 flex h-[55dvh] flex-col self-start border border-line md:sticky md:mx-0 md:top-20 md:h-[calc(100dvh-6rem)]">
           <div className="flex border-b border-line">
             {(["Makuuchi", "Juryo"] as const).map((d) => (
               <Link
@@ -127,7 +129,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <BoutList bouts={bouts} records={records} selected={selected} hrefFor={(id) => href({ bout: id })} />
+            <BoutList bouts={bouts} records={records} selected={selected} starred={starred} hrefFor={(id) => href({ bout: id })} />
           </div>
           {clipBouts.size > 0 && <p className="border-t border-line p-3 text-caption">{clipBouts.size} bout(s) in this basho have clips.</p>}
         </aside>

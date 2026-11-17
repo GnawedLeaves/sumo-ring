@@ -87,8 +87,23 @@ export async function saveClip(form: FormData): Promise<ActionResult> {
       westShikona: String(form.get("westShikona") ?? ""),
       source: "upload",
       videoUrl: asset.url,
+      remarks: String(form.get("remarks") ?? "").trim() || undefined,
     });
     updateTag(TAGS.clips);
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/** Marks a bout as exciting (or clears it). The star shows in the basho bout lists. */
+export async function setBoutStar(boutId: string, starred: boolean): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const bout = parseBoutId(boutId);
+    if (!bout) throw new Error("Unknown bout");
+    await store.setStar({ boutId, bashoId: bout.bashoId }, starred);
+    updateTag(TAGS.stars);
     return { ok: true };
   } catch (e) {
     return fail(e);

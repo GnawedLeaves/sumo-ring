@@ -13,7 +13,7 @@ import { LiveIndicator } from "@/components/live-indicator";
 import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName } from "@/lib/basho";
-import { getPortraitMap } from "@/lib/content";
+import { getPortraitMap, getStarredBouts } from "@/lib/content";
 import { boutId, record } from "@/lib/format";
 import { dayStatus, getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
 import { getBanzuke, getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
@@ -64,10 +64,11 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
   const viewDay = Number.isInteger(asked) && asked >= 1 && asked <= 15 ? asked : today;
   const isToday = viewDay === today;
 
-  const [todays, records, portraits] = await Promise.all([
+  const [todays, records, portraits, starred] = await Promise.all([
     isToday ? getTodaysBouts(ctx) : Promise.resolve(null),
     getBashoRecords(ctx.bashoId, "live"),
     getPortraitMap(),
+    getStarredBouts(ctx.bashoId),
   ]);
   const [otherJuryo, otherMakuuchi] = isToday
     ? [[], []]
@@ -180,8 +181,9 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
       </div>
 
       <div className="grid gap-8 md:grid-cols-[320px_1fr]">
-        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page */}
-        <aside className="flex h-[55dvh] flex-col self-start border border-line bg-canvas md:sticky md:top-20 md:h-[calc(100dvh-6rem)]">
+        {/* Fixed-height sidebar: the bout list scrolls inside it, not the page. On mobile it's inset from the screen
+            edges (mx-8) so a thumb on either side scrolls the page rather than the list. */}
+        <aside className="mx-8 flex h-[55dvh] flex-col self-start border border-line bg-canvas md:sticky md:mx-0 md:top-20 md:h-[calc(100dvh-6rem)]">
           <div className="flex border-b border-line">
             {(["Makuuchi", "Juryo"] as const).map((d) => (
               <Link
@@ -195,7 +197,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
             ))}
           </div>
           <ScrollToBout targetId={focusId} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} hrefFor={(id) => href({ bout: id })} />
+            <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} starred={starred} hrefFor={(id) => href({ bout: id })} />
           </ScrollToBout>
         </aside>
         <div className="min-w-0">

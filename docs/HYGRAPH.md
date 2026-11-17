@@ -1,6 +1,6 @@
 # Hygraph setup
 
-Hygraph stores the content the Sumo API doesn't have: streams, clips, news articles and rikishi portraits.
+Hygraph stores the content the Sumo API doesn't have: streams, clips, news articles, rikishi portraits and starred bouts.
 Code: `src/lib/content/hygraph-store.ts`. Without `HYGRAPH_ENDPOINT`, the app falls back to a local JSON file
 (`.data/content.json`) — fine for development, not for Render (ephemeral disk).
 
@@ -39,6 +39,7 @@ Field API IDs must match exactly. "Text" = single-line text unless noted.
 | `videoUrl` | Text | URL of the uploaded Hygraph asset |
 | `startSec`, `endSec` | Int | optional, unused for now — reserved for future in-stream clipping |
 | `streamId` | Text | optional, unused for now — reserved for future in-stream clipping |
+| `remarks` | Text | optional — shown under the video (e.g. "Rematch" when a bout has two clips) |
 
 Clip videos are Hygraph Assets (new asset system — projects created after Feb 2024):
 
@@ -70,3 +71,11 @@ Max file size depends on your Hygraph plan.
 | `image` | Asset | portrait photo |
 
 The Sumo API has no images; rikishi without a portrait get a generated kanji monogram.
+
+### BoutStar
+A bout an admin marked as exciting; shown with a star in the basho bout lists. Un-starring deletes the entry.
+
+| Field | Type | Notes |
+|---|---|---|
+| `boutId` | Text | required, **unique** — same format as `Clip.boutId` |
+| `bashoId` | Text | required, `YYYYMM` (bout lists query by basho) |

@@ -9,7 +9,7 @@ import { bashoInfo, bashoName } from "@/lib/basho";
 import { CopyButton } from "@/components/copy-button";
 import { ShareButton } from "@/components/share-button";
 import { pairTones, toneClass } from "@/lib/rikishi-color";
-import { getClips, getPortraitMap } from "@/lib/content";
+import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
 import type { Match, RankChange, Rikishi } from "@/lib/sumo-api";
@@ -206,7 +206,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {!compact && <BoutComments boutId={boutId} title={boutTitle} />}
 
       <Suspense fallback={null}>
-        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} />
+        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={boutTitle} />
       </Suspense>
     </article>
   );
@@ -257,9 +257,11 @@ async function BoutClipVideos({ boutId }: { boutId: string }) {
   return (
     <section className="flex flex-col gap-3" aria-label="Clips">
       {clips.map((c) => (
-        // No visible caption: the bout header above already names the match. The title stays on the player for screen readers.
-        <figure key={c.id}>
+        // No title caption: the bout header above already names the match (the title stays on the player for screen
+        // readers). Remarks (e.g. "Rematch") are shown, since they tell two clips of the same bout apart.
+        <figure key={c.id} className="flex flex-col gap-1">
           <VideoPlayer url={c.videoUrl} start={c.startSec} end={c.endSec} title={c.title} />
+          {c.remarks && <figcaption className="text-body-sm text-ink-soft">{c.remarks}</figcaption>}
         </figure>
       ))}
     </section>
@@ -267,7 +269,14 @@ async function BoutClipVideos({ boutId }: { boutId: string }) {
 }
 
 /** Admin-only clip upload / delete, kept at the bottom of the bout. (getClips is cached, so this reuses the same fetch.) */
-async function BoutClipAdmin({ boutId, eastShikona, westShikona }: { boutId: string; eastShikona: string; westShikona: string }) {
-  const clips = await getClips({ boutId });
-  return <ClipAdmin boutId={boutId} eastShikona={eastShikona} westShikona={westShikona} clips={clips.map((c) => ({ id: c.id, title: c.title }))} />;
+async function BoutClipAdmin(props: { boutId: string; eastShikona: string; westShikona: string; defaultTitle: string }) {
+  const b = parseBoutId(props.boutId);
+  const [clips, starred] = await Promise.all([getClips({ boutId: props.boutId }), b ? getStarredBouts(b.bashoId) : ([] as string[])]);
+  return (
+    <ClipAdmin
+      {...props}
+      starred={starred.includes(props.boutId)}
+      clips={clips.map((c) => ({ id: c.id, title: c.title, remarks: c.remarks }))}
+    />
+  );
 }

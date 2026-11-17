@@ -33,6 +33,8 @@ export type Clip = {
   startSec?: number;
   endSec?: number;
   streamId?: string;
+  /** Optional note shown under the video, e.g. "Rematch (torinaoshi)". */
+  remarks?: string;
   createdAt: string;
 };
 
@@ -54,6 +56,9 @@ export type NewsArticle = {
 };
 
 export type Portrait = { rikishiId: number; imageUrl: string };
+
+/** A bout an admin marked as exciting (shown with a star in the bout lists). */
+export type BoutStar = { boutId: string; bashoId: string };
 
 export interface ContentStore {
   readonly kind: "hygraph" | "local";
@@ -83,6 +88,10 @@ export interface ContentStore {
   listPortraits(): Promise<Portrait[]>;
   /** Point a rikishi's portrait at an uploaded image asset (creates or replaces it). */
   setPortrait(rikishiId: number, assetId: string): Promise<void>;
+
+  listStars(bashoId: string): Promise<BoutStar[]>;
+  /** Stars or un-stars a bout (idempotent). */
+  setStar(star: BoutStar, starred: boolean): Promise<void>;
 }
 
 export type UploadStatus = { status: "pending" | "complete" | "error"; url: string; error?: string; mimeType?: string; size?: number };

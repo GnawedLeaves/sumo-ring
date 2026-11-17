@@ -1,7 +1,7 @@
 // Hygraph-backed content store. Schema: docs/HYGRAPH.md
 // Reads and writes use the DRAFT stage so edits are visible immediately without a publish step.
 import "server-only";
-import type { Clip, ContentStore, NewsArticle, Portrait, Stream, UploadTarget } from "./types";
+import type { BoutStar, Clip, ContentStore, NewsArticle, Portrait, Stream, UploadTarget } from "./types";
 
 const ENDPOINT = process.env.HYGRAPH_ENDPOINT ?? "";
 const TOKEN = process.env.HYGRAPH_TOKEN ?? "";
@@ -42,12 +42,12 @@ async function gql<T>(query: string, variables: Record<string, unknown> = {}): P
  * Publish an entry right after a create/update so it doesn't sit as a draft. (We read DRAFT, which always holds
  * the latest version, but PUBLISHED is what Hygraph treats as live.) Needs the token's Publish permission.
  */
-async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset" | "RikishiPortrait", id: string) {
+async function publish(model: "Stream" | "Clip" | "NewsArticle" | "Asset" | "RikishiPortrait" | "BoutStar", id: string) {
   await gql(`mutation($id: ID!) { publish${model}(where: { id: $id }, to: PUBLISHED) { id } }`, { id });
 }
 
 const STREAM = "id name url platform order note";
-const CLIP = "id title boutId bashoId day eastId westId eastShikona westShikona source videoUrl startSec endSec streamId createdAt";
+const CLIP = "id title boutId bashoId day eastId westId eastShikona westShikona source videoUrl startSec endSec streamId remarks createdAt";
 // Hygraph reserves `publishedAt` (system field), so the model stores it as `publishedOn`; aliased back here.
 const NEWS = "id slug title summary body tags sources imageUrl publishedAt: publishedOn";
 
@@ -230,5 +230,29 @@ export const hygraphStore: ContentStore = {
       id = d.createRikishiPortrait.id;
     }
     await publish("RikishiPortrait", id);
+  },
+
+  async listStars(bashoId) {
+    const d = await gql<{ boutStars: BoutStar[] }>(
+      `query($bashoId: String!) { boutStars(where: { bashoId: $bashoId }, first: 500) { boutId bashoId } }`,
+      { bashoId },
+    );
+    return d.boutStars;
+  },
+  async setStar(star, starred) {
+    const found = await gql<{ boutStars: { id: string }[] }>(
+      `query($boutId: String!) { boutStars(where: { boutId: $boutId }, first: 10) { id } }`,
+      { boutId: star.boutId },
+    );
+    if (starred) {
+      if (found.boutStars.length) return;
+      const d = await gql<{ createBoutStar: { id: string } }>(
+        `mutation($data: BoutStarCreateInput!) { createBoutStar(data: $data) { id } }`,
+        { data: star },
+      );
+      await publish("BoutStar", d.createBoutStar.id);
+    } else {
+      for (const { id } of found.boutStars) await gql(`mutation($id: ID!) { deleteBoutStar(where: { id: $id }) { id } }`, { id });
+    }
   },
 };

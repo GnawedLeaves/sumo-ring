@@ -13,7 +13,7 @@ export * from "./types";
 
 export const store: ContentStore = process.env.HYGRAPH_ENDPOINT ? hygraphStore : localStore;
 
-export const TAGS = { streams: "streams", clips: "clips", news: "news", portraits: "portraits" } as const;
+export const TAGS = { streams: "streams", clips: "clips", news: "news", portraits: "portraits", stars: "stars" } as const;
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 const FAILED_LIFE = { stale: 30, revalidate: 60, expire: 120 };
@@ -73,8 +73,16 @@ async function cachedPortraitMap() {
   );
 }
 
+/** Bout ids an admin starred as exciting in this basho. */
+async function cachedStarredBouts(bashoId: string) {
+  "use cache";
+  cacheTag(TAGS.stars);
+  return attempt(store.listStars(bashoId).then((list) => list.map((s) => s.boutId)), "hours");
+}
+
 export const getStreams = unwrap(cachedStreams, [] as Stream[]);
 export const getClips = unwrap(cachedClips, [] as Clip[]);
 export const getNewsArticles = unwrap(cachedNewsArticles, [] as NewsArticle[]);
 export const getNewsArticle = unwrap(cachedNewsArticle, null);
 export const getPortraitMap = unwrap(cachedPortraitMap, {} as Record<number, string>);
+export const getStarredBouts = unwrap(cachedStarredBouts, [] as string[]);
