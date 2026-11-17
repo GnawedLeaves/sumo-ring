@@ -75,7 +75,7 @@ then persists between requests, which keeps load on the Sumo API low. The retire
   stories, so roughly 250–350k characters a month — inside the free tier.
 - Requests must send `Authorization: Bearer $CRON_SECRET`. Add `?dry=1` to list the stories it would create,
   with tags and every grouped headline, without calling DeepL or writing anything.
-- **Schedule on Vercel:** `vercel.json` registers a daily cron (10:00 UTC, after the day's Makuuchi bouts).
+- **Schedule on Vercel:** `vercel.json` registers a daily cron (12:00 UTC = 21:00 JST, after the day's Makuuchi bouts).
   Set `CRON_SECRET` in the Vercel project's env vars — Vercel sends it as the Bearer token automatically.
   The Hobby plan allows daily crons only; Pro allows hourly (change `schedule` to `0 * * * *`).
 - **Schedule on Render:** create a Cron Job (e.g. `0 * * * *`, hourly) with the command
