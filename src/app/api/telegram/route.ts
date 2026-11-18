@@ -2,7 +2,7 @@
 //
 // - Inline mode: in any chat, "@bot" lists the newest clips; "@bot hoshoryu" filters by shikona. Picking one sends
 //   the video with the bout title as its caption, in a single message.
-// - "/start <clipId>" (the app's "Send via Telegram" link): the bot replies with that clip and a
+// - "/start <clipId>" (old "Send via Telegram" links from the app): the bot replies with that clip and a
 //   "Send to a chat" button, which opens Telegram's chat picker with the clip ready to send.
 import type { NextRequest } from "next/server";
 import { getClips, store, type Clip } from "@/lib/content";
@@ -157,7 +157,7 @@ async function answerMessage(chatId: number, text: string, origin: string) {
   if (!clip) {
     await tg("sendMessage", {
       chat_id: chatId,
-      text: `Type @${telegramBotUsername() ?? "this bot"} in any chat to send a sumo clip, e.g. "@${telegramBotUsername() ?? "bot"} hoshoryu". Or tap "Send via Telegram" under a clip in Sumo Ring.`,
+      text: `Type @${telegramBotUsername() ?? "this bot"} in any chat to send a sumo clip, e.g. "@${telegramBotUsername() ?? "bot"} hoshoryu". Or search by day, e.g. "@${telegramBotUsername() ?? "bot"} day 11".`,
     });
     return;
   }
