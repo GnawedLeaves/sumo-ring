@@ -159,6 +159,8 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
           <tbody>
             {[
               ["Heya", <Romaji key="e" text={e.r?.heya} kind="heya" />, <Romaji key="w" text={w.r?.heya} kind="heya" />],
+              // Shusshin: prefecture for Japanese-born rikishi, else country (e.g. "Mongolia, Ulaanbaatar").
+              ["Origin", e.r?.shusshin && <Romaji key="e" text={e.r.shusshin} kind="shusshin" />, w.r?.shusshin && <Romaji key="w" text={w.r.shusshin} kind="shusshin" />],
               ["Age", ageFrom(e.r?.birthDate), ageFrom(w.r?.birthDate)],
               ["Height", e.r?.height && `${e.r.height} cm`, w.r?.height && `${w.r.height} cm`],
               ["Weight", e.r?.weight && `${e.r.weight} kg`, w.r?.weight && `${w.r.weight} kg`],
