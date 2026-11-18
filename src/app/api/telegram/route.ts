@@ -6,6 +6,7 @@
 //   "Send to a chat" button, which opens Telegram's chat picker with the clip ready to send.
 import type { NextRequest } from "next/server";
 import { getClips, store, type Clip } from "@/lib/content";
+import { hygraphStore } from "@/lib/content/hygraph-store";
 import { parseBoutId } from "@/lib/format";
 import { getTorikumi } from "@/lib/sumo-data";
 import { clipCaption, telegramBotUsername, telegramConfigured, tg, UNSENDABLE_TEXT, unsendableReason } from "@/lib/telegram";
@@ -41,13 +42,35 @@ const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g
  * All clips, newest first, read straight from the store. The cached getClips() is kept per server instance, so the
  * bot's copy could miss clips uploaded since (e.g. a whole new day) even when the app's pages show them.
  */
+let lastSource = "not read yet";
+
 async function freshClips(): Promise<Clip[]> {
   try {
-    return await store.listClips();
+    const clips = await store.listClips();
+    lastSource = `fresh from the store (${store === hygraphStore ? "Hygraph" : "local file"})`;
+    return clips;
   } catch (e) {
+    lastSource = `cached fallback; the fresh read failed: ${e instanceof Error ? e.message : e}`;
     console.error(`[telegram] listClips: ${e instanceof Error ? e.message : e}`);
     return getClips();
   }
+}
+
+/** "/debug": which build is live, where the clip list came from, and clips per day. Counts only, nothing private. */
+async function debugText() {
+  const clips = await freshClips();
+  const perDay = new Map<string, number>();
+  for (const c of clips) {
+    const k = `${c.bashoId} day ${c.day}`;
+    perDay.set(k, (perDay.get(k) ?? 0) + 1);
+  }
+  const days = [...perDay].sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true })).slice(0, 5);
+  return [
+    `Build: ${process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown"}`,
+    `Clip list: ${lastSource}`,
+    `Clips: ${clips.length}`,
+    ...days.map(([k, n]) => `${k}: ${n}`),
+  ].join("\n");
 }
 
 async function findClips(query: string): Promise<Clip[]> {
@@ -123,6 +146,10 @@ async function answerInline(query: { id: string; query: string }, origin: string
 
 async function answerMessage(chatId: number, text: string, origin: string) {
   const [cmd, arg = ""] = text.trim().split(/\s+/, 2);
+  if (cmd.split("@")[0] === "/debug") {
+    await tg("sendMessage", { chat_id: chatId, text: await debugText() });
+    return;
+  }
   const clip = cmd === "/start" && arg ? (await findClips(arg)).find((c) => c.id === arg) : undefined;
   if (!clip) {
     await tg("sendMessage", {
