@@ -8,6 +8,7 @@ import { BoutComments } from "@/components/bout/bout-comments";
 import { bashoInfo, bashoName } from "@/lib/basho";
 import { CopyButton } from "@/components/copy-button";
 import { ShareButton } from "@/components/share-button";
+import { ShareVideoButton } from "@/components/bout/share-video-button";
 import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
@@ -89,7 +90,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
 
       {/* Clips first: if this bout has video, it's the main thing to see. */}
       <Suspense fallback={null}>
-        <BoutClipVideos boutId={boutId} />
+        <BoutClipVideos boutId={boutId} title={boutTitle} />
       </Suspense>
 
       {/* Matchup */}
@@ -251,7 +252,7 @@ function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [strin
 }
 
 /** The bout's clips, shown at the top of the bout. Renders nothing when there are none. */
-async function BoutClipVideos({ boutId }: { boutId: string }) {
+async function BoutClipVideos({ boutId, title }: { boutId: string; title: string }) {
   const clips = await getClips({ boutId });
   if (clips.length === 0) return null;
   return (
@@ -261,7 +262,11 @@ async function BoutClipVideos({ boutId }: { boutId: string }) {
         // readers). Remarks (e.g. "Rematch") are shown, since they tell two clips of the same bout apart.
         <figure key={c.id} className="flex flex-col gap-1">
           <VideoPlayer url={c.videoUrl} start={c.startSec} end={c.endSec} title={c.title} />
-          {c.remarks && <figcaption className="text-body-sm text-ink-soft">{c.remarks}</figcaption>}
+          <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <span className="text-body-sm text-ink-soft">{c.remarks}</span>
+            {/* Sends the video file itself (e.g. to a Telegram chat) with the bout title as the message. */}
+            <ShareVideoButton url={c.videoUrl} title={title} remarks={c.remarks} />
+          </figcaption>
         </figure>
       ))}
     </section>
