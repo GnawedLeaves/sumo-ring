@@ -8,7 +8,7 @@ import type { NextRequest } from "next/server";
 import { getClips, type Clip } from "@/lib/content";
 import { parseBoutId } from "@/lib/format";
 import { getTorikumi } from "@/lib/sumo-data";
-import { clipCaption, sendableByUrl, telegramBotUsername, telegramConfigured, tg } from "@/lib/telegram";
+import { clipCaption, telegramBotUsername, telegramConfigured, tg, UNSENDABLE_TEXT, unsendableReason } from "@/lib/telegram";
 
 type Update = {
   inline_query?: { id: string; query: string };
@@ -16,7 +16,7 @@ type Update = {
 };
 
 /** Telegram shows at most 50 inline results. */
-const MAX_RESULTS = 20;
+const MAX_RESULTS = 40;
 
 export async function POST(request: NextRequest) {
   if (!telegramConfigured()) return Response.json({ error: "Telegram bot is not configured" }, { status: 503 });
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const update = (await request.json().catch(() => ({}))) as Update;
   try {
     if (update.inline_query) await answerInline(update.inline_query, request.nextUrl.origin);
-    else if (update.message?.text) await answerMessage(update.message.chat.id, update.message.text);
+    else if (update.message?.text) await answerMessage(update.message.chat.id, update.message.text, request.nextUrl.origin);
   } catch (e) {
     // Always 200: a non-2xx makes Telegram retry the same update over and over.
     console.error(`[telegram] ${e instanceof Error ? e.message : e}`);
@@ -79,26 +79,36 @@ async function torikumiOrder(clips: Clip[], take: number): Promise<Clip[]> {
 }
 
 async function answerInline(query: { id: string; query: string }, origin: string) {
-  const candidates = await torikumiOrder(await findClips(query.query), MAX_RESULTS * 2);
-  const ok = await Promise.all(candidates.map((c) => sendableByUrl(c.videoUrl)));
-  const clips = candidates.filter((_, i) => ok[i]).slice(0, MAX_RESULTS);
+  const clips = (await torikumiOrder(await findClips(query.query), MAX_RESULTS)).slice(0, MAX_RESULTS);
+  const reasons = await Promise.all(clips.map((c) => unsendableReason(c.videoUrl)));
+  const thumbnail_url = `${origin}/pwa-icon/192`;
   await tg("answerInlineQuery", {
     inline_query_id: query.id,
     cache_time: 30,
-    results: clips.map((c) => ({
-      type: "video",
-      id: c.id,
-      video_url: c.videoUrl,
-      mime_type: "video/mp4",
-      thumbnail_url: `${origin}/pwa-icon/192`,
-      title: `${c.eastShikona} vs ${c.westShikona}`,
-      description: clipCaption(c),
-      caption: clipCaption(c),
-    })),
+    // Clips Telegram can't fetch by URL (too large, not MP4) still appear, as a link to the bout, rather than
+    // silently vanishing from the list.
+    results: clips.map((c, i) => {
+      const caption = clipCaption(c);
+      const title = `${c.eastShikona} vs ${c.westShikona}`;
+      const reason = reasons[i];
+      if (!reason) {
+        return { type: "video", id: c.id, video_url: c.videoUrl, mime_type: "video/mp4", thumbnail_url, title, description: caption, caption };
+      }
+      const link = `${origin}/bout/${c.boutId}`;
+      return {
+        type: "article",
+        id: `${c.id}-link`.slice(0, 64),
+        title: `🔗 ${title}`,
+        description: `${caption}\n${UNSENDABLE_TEXT[reason]}: sends a link`,
+        thumbnail_url,
+        url: link,
+        input_message_content: { message_text: `${caption}\n${link}` },
+      };
+    }),
   });
 }
 
-async function answerMessage(chatId: number, text: string) {
+async function answerMessage(chatId: number, text: string, origin: string) {
   const [cmd, arg = ""] = text.trim().split(/\s+/, 2);
   const clip = cmd === "/start" && arg ? (await findClips(arg)).find((c) => c.id === arg) : undefined;
   if (!clip) {
@@ -116,7 +126,7 @@ async function answerMessage(chatId: number, text: string) {
     // Over 20 MB (or not MP4): Telegram can't fetch it by URL.
     await tg("sendMessage", {
       chat_id: chatId,
-      text: `${caption}\n\nThis clip is too large for Telegram to send directly. Use "Share video" in Sumo Ring instead.`,
+      text: `${caption}\n${origin}/bout/${clip.boutId}\n\nThis clip is too large (or not an MP4) for Telegram to send directly. Use "Share video" in Sumo Ring instead.`,
     });
   }
 }

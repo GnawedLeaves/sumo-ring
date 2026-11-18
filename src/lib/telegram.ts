@@ -32,20 +32,36 @@ export function clipCaption(c: Clip) {
   return c.remarks ? `${title} (${c.remarks})` : title;
 }
 
-/** Size + type of each video, remembered per server instance so repeat searches don't re-check every file. */
-const probed = new Map<string, { size: number; type: string } | null>();
+/** Why Telegram can't fetch a video by URL, or null when it can. */
+export type Unsendable = "too-large" | "not-mp4" | "unreachable";
 
-/** True when Telegram can fetch this video by URL (MP4, ≤ 20 MB). Unknown sizes are allowed through. */
-export async function sendableByUrl(url: string): Promise<boolean> {
-  if (!probed.has(url)) {
+/**
+ * Size + type of each video, remembered per server instance so repeat searches don't re-check every file.
+ * Only real answers are remembered: a failed check (e.g. a just-uploaded asset the CDN doesn't serve yet) is retried
+ * on the next search instead of hiding that clip until the server restarts.
+ */
+const probed = new Map<string, { size: number; type: string }>();
+
+/** null when Telegram can fetch this video by URL (MP4, ≤ 20 MB), else the reason. Unknown sizes/types are allowed. */
+export async function unsendableReason(url: string): Promise<Unsendable | null> {
+  let p = probed.get(url);
+  if (!p) {
     try {
       const res = await fetch(url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(3000) });
-      probed.set(url, res.ok ? { size: Number(res.headers.get("content-length")) || 0, type: res.headers.get("content-type") ?? "" } : null);
+      if (!res.ok) return "unreachable";
+      p = { size: Number(res.headers.get("content-length")) || 0, type: res.headers.get("content-type") ?? "" };
+      probed.set(url, p);
     } catch {
-      return true; // don't cache a timeout; let Telegram try
+      return null; // timeout: let Telegram try
     }
   }
-  const p = probed.get(url);
-  if (!p) return false;
-  return (!p.type || p.type.startsWith("video/mp4")) && (!p.size || p.size <= TELEGRAM_URL_LIMIT);
+  if (p.type && !p.type.startsWith("video/mp4")) return "not-mp4";
+  if (p.size > TELEGRAM_URL_LIMIT) return "too-large";
+  return null;
 }
+
+export const UNSENDABLE_TEXT: Record<Unsendable, string> = {
+  "too-large": "Over Telegram's 20 MB limit",
+  "not-mp4": "Not an MP4, so Telegram can't send it",
+  unreachable: "Video not available yet",
+};

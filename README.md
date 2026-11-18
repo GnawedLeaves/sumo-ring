@@ -92,8 +92,9 @@ webhook `src/app/api/telegram/route.ts`.
 - **In any chat:** type `@<bot>` for the newest clips, or `@<bot> hoshoryu` to search by shikona; tap one to send it.
 - **From the app:** "Send via Telegram" under a clip opens the bot, which replies with the clip and a
   "Send to a chat" button (opens the chat picker with that clip).
-- Telegram fetches the video from Hygraph itself, which only works for MP4 files up to 20 MB. Larger clips are
-  left out of the inline list; "Share video" (phone share sheet) still works for them.
+- Telegram fetches the video from Hygraph itself, which only works for MP4 files up to 20 MB. Larger (or non-MP4)
+  clips still appear in the inline list, marked 🔗, and send a link to the bout instead; "Share video" (phone share
+  sheet) still sends the file itself.
 
 Setup:
 
