@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, Video } from "lucide-react";
 import { RikishiName } from "@/components/rikishi-name";
 import { boutId, record } from "@/lib/format";
 import { shortRank } from "@/lib/rank";
@@ -18,6 +18,7 @@ export function BoutList({
   selected,
   currentId,
   starred,
+  withClips,
   hrefFor,
 }: {
   bouts: Match[];
@@ -26,6 +27,8 @@ export function BoutList({
   currentId?: string;
   /** Bout ids an admin marked as exciting. */
   starred?: string[];
+  /** Bout ids that have at least one clip to watch. */
+  withClips?: string[];
   hrefFor: (id: string) => string;
 }) {
   if (!bouts.length) return <p className="p-4 text-body-sm">No bouts published for this day yet.</p>;
@@ -68,6 +71,7 @@ export function BoutList({
                   {starred?.includes(id) && (
                     <Star aria-label="Exciting bout" role="img" className="h-3.5 w-3.5 text-tangerine-pop" fill="currentColor" />
                   )}
+                  {withClips?.includes(id) && <Video aria-label="Clip available" role="img" className="h-3.5 w-3.5 text-brand" />}
                 </span>
                 {isNow && <span className="badge">NOW</span>}
                 {decided && <span><Romaji text={m.kimarite} kind="kimarite" link={false} /></span>}

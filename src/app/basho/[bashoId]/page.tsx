@@ -129,7 +129,7 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <BoutList bouts={bouts} records={records} selected={selected} starred={starred} hrefFor={(id) => href({ bout: id })} />
+            <BoutList bouts={bouts} records={records} selected={selected} starred={starred} withClips={[...clipBouts]} hrefFor={(id) => href({ bout: id })} />
           </div>
           {clipBouts.size > 0 && <p className="border-t border-line p-3 text-caption">{clipBouts.size} bout(s) in this basho have clips.</p>}
         </aside>

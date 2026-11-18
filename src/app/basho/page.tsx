@@ -13,7 +13,7 @@ import { LiveIndicator } from "@/components/live-indicator";
 import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { bashoInfo, bashoName } from "@/lib/basho";
-import { getPortraitMap, getStarredBouts } from "@/lib/content";
+import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
 import { boutId, record } from "@/lib/format";
 import { dayStatus, getLiveContext, getTodaysBouts, SESSION_HOURS_SGT } from "@/lib/live";
 import { getBanzuke, getBashoRecords, getBashoSummary, getTorikumi } from "@/lib/sumo-data";
@@ -64,11 +64,12 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
   const viewDay = Number.isInteger(asked) && asked >= 1 && asked <= 15 ? asked : today;
   const isToday = viewDay === today;
 
-  const [todays, records, portraits, starred] = await Promise.all([
+  const [todays, records, portraits, starred, clips] = await Promise.all([
     isToday ? getTodaysBouts(ctx) : Promise.resolve(null),
     getBashoRecords(ctx.bashoId, "live"),
     getPortraitMap(),
     getStarredBouts(ctx.bashoId),
+    getClips({ bashoId: ctx.bashoId }),
   ]);
   const [otherJuryo, otherMakuuchi] = isToday
     ? [[], []]
@@ -197,7 +198,7 @@ async function CurrentBasho({ searchParams }: Pick<PageProps<"/basho">, "searchP
             ))}
           </div>
           <ScrollToBout targetId={focusId} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} starred={starred} hrefFor={(id) => href({ bout: id })} />
+            <BoutList bouts={bouts} records={records} selected={selected} currentId={currentId} starred={starred} withClips={clips.map((c) => c.boutId)} hrefFor={(id) => href({ bout: id })} />
           </ScrollToBout>
         </aside>
         <div className="min-w-0">
