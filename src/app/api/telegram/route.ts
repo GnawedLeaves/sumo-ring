@@ -6,6 +6,8 @@
 //   "Send to a chat" button, which opens Telegram's chat picker with the clip ready to send.
 import type { NextRequest } from "next/server";
 import { getClips, type Clip } from "@/lib/content";
+import { parseBoutId } from "@/lib/format";
+import { getTorikumi } from "@/lib/sumo-data";
 import { clipCaption, sendableByUrl, telegramBotUsername, telegramConfigured, tg } from "@/lib/telegram";
 
 type Update = {
@@ -48,8 +50,36 @@ async function findClips(query: string): Promise<Clip[]> {
   });
 }
 
+/**
+ * Torikumi order: newest basho and day first; within a day Makuuchi before Juryo (and below), then from the last
+ * bout of the day down (the musubi-no-ichiban, i.e. the yokozuna, first), so the top-division bouts lead.
+ * matchNo restarts per division, so the division is looked up from the day's Makuuchi torikumi (cached).
+ */
+async function torikumiOrder(clips: Clip[], take: number): Promise<Clip[]> {
+  const rows = clips.map((c) => ({ c, b: parseBoutId(c.boutId) }));
+  const dayKey = (c: Clip) => `${c.bashoId}-${String(c.day).padStart(2, "0")}`;
+  rows.sort((x, y) => dayKey(y.c).localeCompare(dayKey(x.c)));
+  // Only the days that can reach the top `take` results need a division lookup (the boundary day in full).
+  const head = rows.slice(0, take);
+  const lastDay = head.length ? dayKey(head[head.length - 1].c) : "";
+  const top = rows.filter((r, i) => i < take || dayKey(r.c) === lastDay);
+  const days = [...new Set(top.map((r) => dayKey(r.c)))];
+  const makuuchi = new Set(
+    (await Promise.all(days.map((k) => getTorikumi(k.slice(0, 6), Number(k.slice(7)), "Makuuchi")))).flat().map((m) => `${m.bashoId}-${m.day}-${m.matchNo}-${m.eastId}-${m.westId}`),
+  );
+  return top
+    .sort(
+      (x, y) =>
+        dayKey(y.c).localeCompare(dayKey(x.c)) ||
+        Number(makuuchi.has(y.c.boutId)) - Number(makuuchi.has(x.c.boutId)) ||
+        (y.b?.matchNo ?? 0) - (x.b?.matchNo ?? 0) ||
+        x.c.createdAt.localeCompare(y.c.createdAt), // same bout: original before a rematch clip
+    )
+    .map((r) => r.c);
+}
+
 async function answerInline(query: { id: string; query: string }, origin: string) {
-  const candidates = (await findClips(query.query)).slice(0, MAX_RESULTS * 2);
+  const candidates = await torikumiOrder(await findClips(query.query), MAX_RESULTS * 2);
   const ok = await Promise.all(candidates.map((c) => sendableByUrl(c.videoUrl)));
   const clips = candidates.filter((_, i) => ok[i]).slice(0, MAX_RESULTS);
   await tg("answerInlineQuery", {
