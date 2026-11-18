@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { LiveIndicator } from "@/components/live-indicator";
 import type { DayStatus } from "@/lib/live";
+import { ScrollToCurrent } from "./scroll-to-current";
 
 const DAYS = Array.from({ length: 15 }, (_, i) => i + 1);
 
@@ -24,8 +25,10 @@ export function DayPicker({
   vertical?: boolean;
 }) {
   return (
-    <nav
-      aria-label="Day"
+    // Scrolls the row to the selected day (today's live day by default), so it's in view without hunting for it.
+    <ScrollToCurrent
+      currentKey={selected}
+      label="Day"
       className={
         vertical
           ? "flex gap-1 self-start overflow-x-auto md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:flex-col md:overflow-y-auto md:overflow-x-visible"
@@ -60,6 +63,6 @@ export function DayPicker({
           </Link>
         );
       })}
-    </nav>
+    </ScrollToCurrent>
   );
 }
