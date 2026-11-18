@@ -158,9 +158,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         <table className="w-full table-fixed border-collapse break-words text-body-sm">
           <tbody>
             {[
-              ["Heya", <Romaji key="e" text={e.r?.heya} kind="heya" />, <Romaji key="w" text={w.r?.heya} kind="heya" />],
-              // Shusshin: prefecture for Japanese-born rikishi, else country (e.g. "Mongolia, Ulaanbaatar").
-              ["Origin", e.r?.shusshin && <Romaji key="e" text={e.r.shusshin} kind="shusshin" />, w.r?.shusshin && <Romaji key="w" text={w.r.shusshin} kind="shusshin" />],
+              ["Stable", <Romaji key="e" text={e.r?.heya} kind="heya" />, <Romaji key="w" text={w.r?.heya} kind="heya" />],
               ["Age", ageFrom(e.r?.birthDate), ageFrom(w.r?.birthDate)],
               ["Height", e.r?.height && `${e.r.height} cm`, w.r?.height && `${w.r.height} cm`],
               ["Weight", e.r?.weight && `${e.r.weight} kg`, w.r?.weight && `${w.r.weight} kg`],
@@ -169,6 +167,8 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
               ["Makuuchi yūshō", e.stats?.yushoByDivision?.Makuuchi ?? 0, w.stats?.yushoByDivision?.Makuuchi ?? 0],
               ["Highest rank", <HighestRank key="e" r={e.r} />, <HighestRank key="w" r={w.r} />],
               ["Top kimarite", <Romaji key="e" text={e.profile.kimariteWins[0]?.[0]} kind="kimarite" />, <Romaji key="w" text={w.profile.kimariteWins[0]?.[0]} kind="kimarite" />],
+              // Shusshin: prefecture for Japanese-born rikishi, else country (e.g. "Mongolia, Ulaanbaatar").
+              ["Origin", e.r?.shusshin && <Romaji key="e" text={e.r.shusshin} kind="shusshin" />, w.r?.shusshin && <Romaji key="w" text={w.r.shusshin} kind="shusshin" />],
             ].map(([label, a, c]) => (
               <tr key={String(label)} className="border-t border-line">
                 <td className="py-2 font-bold">{a ?? "—"}</td>
