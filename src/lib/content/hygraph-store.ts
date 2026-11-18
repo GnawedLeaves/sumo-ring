@@ -82,7 +82,10 @@ export const hygraphStore: ContentStore = {
   },
 
   async listClips(filter = {}) {
-    const where = clean({ bashoId: filter.bashoId, boutId: filter.boutId });
+    // createdAt_lte "now" changes on every request, so Hygraph's response cache (the CDN endpoint caches by query +
+    // variables) can't serve a stale list. Without it the unfiltered "all clips" query kept returning an old snapshot
+    // that missed most clips uploaded since, while per-bout queries were fine.
+    const where = clean({ bashoId: filter.bashoId, boutId: filter.boutId, createdAt_lte: new Date(Date.now() + 60_000).toISOString() }); // +1 min: clock skew
     const d = await gql<{ clips: Clip[] }>(
       `query($where: ClipWhereInput) { clips(where: $where, orderBy: createdAt_DESC, first: 500) { ${CLIP} } }`,
       { where },
