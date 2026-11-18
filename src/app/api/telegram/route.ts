@@ -114,6 +114,9 @@ async function torikumiOrder(clips: Clip[], take: number): Promise<Clip[]> {
     .map((r) => r.c);
 }
 
+/** The text sent with a clip: the bout title, a blank line, then a link to the bout page. */
+const sentCaption = (c: Clip, origin: string) => `${clipCaption(c)}\n\nFull details: ${origin}/bout/${c.boutId}`;
+
 async function answerInline(query: { id: string; query: string }, origin: string) {
   const clips = (await torikumiOrder(await findClips(query.query), MAX_RESULTS)).slice(0, MAX_RESULTS);
   const reasons = await Promise.all(clips.map((c) => unsendableReason(c.videoUrl)));
@@ -128,7 +131,7 @@ async function answerInline(query: { id: string; query: string }, origin: string
       const title = `${c.eastShikona} vs ${c.westShikona}`;
       const reason = reasons[i];
       if (!reason) {
-        return { type: "video", id: c.id, video_url: c.videoUrl, mime_type: "video/mp4", thumbnail_url, title, description: caption, caption };
+        return { type: "video", id: c.id, video_url: c.videoUrl, mime_type: "video/mp4", thumbnail_url, title, description: caption, caption: sentCaption(c, origin) };
       }
       const link = `${origin}/bout/${c.boutId}`;
       return {
@@ -138,7 +141,7 @@ async function answerInline(query: { id: string; query: string }, origin: string
         description: `${caption}\n${UNSENDABLE_TEXT[reason]}: sends a link`,
         thumbnail_url,
         url: link,
-        input_message_content: { message_text: `${caption}\n${link}` },
+        input_message_content: { message_text: sentCaption(c, origin) },
       };
     }),
   });
@@ -158,7 +161,7 @@ async function answerMessage(chatId: number, text: string, origin: string) {
     });
     return;
   }
-  const caption = clipCaption(clip);
+  const caption = sentCaption(clip, origin);
   const button = { reply_markup: { inline_keyboard: [[{ text: "Send to a chat", switch_inline_query: clip.id }]] } };
   try {
     await tg("sendVideo", { chat_id: chatId, video: clip.videoUrl, caption, supports_streaming: true, ...button });
@@ -166,7 +169,7 @@ async function answerMessage(chatId: number, text: string, origin: string) {
     // Over 20 MB (or not MP4): Telegram can't fetch it by URL.
     await tg("sendMessage", {
       chat_id: chatId,
-      text: `${caption}\n${origin}/bout/${clip.boutId}\n\nThis clip is too large (or not an MP4) for Telegram to send directly. Use "Share video" in Sumo Ring instead.`,
+      text: `${caption}\n\nThis clip is too large (or not an MP4) for Telegram to send directly. Use "Share video" in Sumo Ring instead.`,
     });
   }
 }
