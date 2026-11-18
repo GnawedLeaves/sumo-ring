@@ -82,3 +82,25 @@ then persists between requests, which keeps load on the Sumo API low. The retire
   `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-app>.onrender.com/api/cron/news`
   and set `CRON_SECRET` on both the web service and the cron job.
 - Articles older than 90 days move to the News archive automatically.
+
+## Telegram bot
+
+Sends a clip's video to any Telegram chat as one message with the bout title as its caption
+(the phone share sheet sends the video and the text separately on iOS). Code: `src/lib/telegram.ts`,
+webhook `src/app/api/telegram/route.ts`.
+
+- **In any chat:** type `@<bot>` for the newest clips, or `@<bot> hoshoryu` to search by shikona; tap one to send it.
+- **From the app:** "Send via Telegram" under a clip opens the bot, which replies with the clip and a
+  "Send to a chat" button (opens the chat picker with that clip).
+- Telegram fetches the video from Hygraph itself, which only works for MP4 files up to 20 MB. Larger clips are
+  left out of the inline list; "Share video" (phone share sheet) still works for them.
+
+Setup:
+
+1. In Telegram, message **@BotFather**: `/newbot` (name + a username ending in `bot`) → copy the token.
+   Then `/setinline` → pick the bot → placeholder text (e.g. `Search clips…`) to enable inline mode.
+2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` (no @) and `TELEGRAM_WEBHOOK_SECRET` (random string) in the
+   host's env vars, and deploy.
+3. Register the webhook once by opening
+   `https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<your-domain>/api/telegram&secret_token=<SECRET>`
+   (expect `"Webhook was set"`). `getWebhookInfo` in place of `setWebhook` shows the last delivery error, if any.

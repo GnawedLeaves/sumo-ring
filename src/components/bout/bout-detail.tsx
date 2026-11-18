@@ -5,12 +5,14 @@ import { RikishiName } from "@/components/rikishi-name";
 import { VideoPlayer } from "@/components/video-player";
 import { ClipAdmin } from "@/components/bout/clip-admin";
 import { BoutComments } from "@/components/bout/bout-comments";
-import { bashoInfo, bashoName } from "@/lib/basho";
+import { bashoName, boutTitle } from "@/lib/basho";
 import { CopyButton } from "@/components/copy-button";
 import { ShareButton } from "@/components/share-button";
 import { ShareVideoButton } from "@/components/bout/share-video-button";
 import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
+import { telegramBotUsername } from "@/lib/telegram";
+import { Send } from "lucide-react";
 import { ageFrom, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
 import { getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
 import type { Match, RankChange, Rikishi } from "@/lib/sumo-api";
@@ -60,11 +62,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   const tones = [eastTone, westTone];
   // Previous meetings: exclude this bout itself so "history" means before today.
   const previous = (h2h?.matches ?? []).filter((m) => !(m.bashoId === b.bashoId && m.day === b.day));
-  // e.g. "Kyushu Basho 2026 Day 6: Fujinokawa vs Ura" (east first, as on the torikumi).
-  const info = bashoInfo(b.bashoId);
-  const boutTitle = `${info ? `${info.en} Basho ${b.bashoId.slice(0, 4)}` : bashoName(b.bashoId)} Day ${b.day}: ${
-    e.r?.shikonaEn ?? bout?.eastShikona ?? "East"
-  } vs ${w.r?.shikonaEn ?? bout?.westShikona ?? "West"}`;
+  const title = boutTitle(b.bashoId, b.day, e.r?.shikonaEn ?? bout?.eastShikona ?? "East", w.r?.shikonaEn ?? bout?.westShikona ?? "West");
   // Deep link to this bout inside its basho's day-by-day page (works for friends, during and after the basho).
   const sharePath = `/basho/${b.bashoId}?${new URLSearchParams({ day: String(b.day), div: bout?.division ?? "Makuuchi", bout: boutId })}`;
 
@@ -76,11 +74,11 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
             {bashoName(b.bashoId)} · Day {b.day}
             {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
           </span>
-          <CopyButton text={boutTitle} label="Copy bout title" />
+          <CopyButton text={title} label="Copy bout title" />
         </p>
         {!compact && (
           <span className="flex items-center gap-4">
-            <ShareButton path={sharePath} title={boutTitle} />
+            <ShareButton path={sharePath} title={title} />
             <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
               Open bout page
             </Link>
@@ -90,7 +88,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
 
       {/* Clips first: if this bout has video, it's the main thing to see. */}
       <Suspense fallback={null}>
-        <BoutClipVideos boutId={boutId} title={boutTitle} />
+        <BoutClipVideos boutId={boutId} title={title} />
       </Suspense>
 
       {/* Matchup */}
@@ -204,10 +202,10 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       )}
 
       {/* Fan comments (Firestore). Not in the compact Streams sidebar — too narrow, and it's a live view. */}
-      {!compact && <BoutComments boutId={boutId} title={boutTitle} />}
+      {!compact && <BoutComments boutId={boutId} title={title} />}
 
       <Suspense fallback={null}>
-        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={boutTitle} />
+        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={title} />
       </Suspense>
     </article>
   );
@@ -255,6 +253,7 @@ function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [strin
 async function BoutClipVideos({ boutId, title }: { boutId: string; title: string }) {
   const clips = await getClips({ boutId });
   if (clips.length === 0) return null;
+  const bot = telegramBotUsername();
   return (
     <section className="flex flex-col gap-3" aria-label="Clips">
       {clips.map((c) => (
@@ -265,7 +264,21 @@ async function BoutClipVideos({ boutId, title }: { boutId: string; title: string
           <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <span className="text-body-sm text-ink-soft">{c.remarks}</span>
             {/* Sends the video file itself (e.g. to a Telegram chat) with the bout title as the message. */}
-            <ShareVideoButton url={c.videoUrl} title={title} remarks={c.remarks} />
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {/* Opens the bot, which sends the clip with the title as its caption (one message) + a chat picker. */}
+              {bot && (
+                <a
+                  href={`https://t.me/${bot}?start=${encodeURIComponent(c.id)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-body-sm text-ink-soft transition-colors hover:text-brand"
+                >
+                  <Send aria-hidden className="h-4 w-4" />
+                  Send via Telegram
+                </a>
+              )}
+              <ShareVideoButton url={c.videoUrl} title={title} remarks={c.remarks} />
+            </span>
           </figcaption>
         </figure>
       ))}

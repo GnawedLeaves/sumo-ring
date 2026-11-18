@@ -34,6 +34,12 @@ export function bashoInfo(id: string) {
   return BASHO_NAMES[parseBashoId(id).month];
 }
 
+/** e.g. "Kyushu Basho 2026 Day 6: Fujinokawa vs Ura" (east first, as on the torikumi). Used for copy/share captions. */
+export function boutTitle(bashoId: string, day: number, east: string, west: string) {
+  const info = bashoInfo(bashoId);
+  return `${info ? `${info.en} Basho ${bashoId.slice(0, 4)}` : bashoName(bashoId)} Day ${day}: ${east} vs ${west}`;
+}
+
 /** Start of day 1 as a UTC timestamp at JST midnight. */
 export function ruleStartDate(id: string): Date {
   const { year, month } = parseBashoId(id);
