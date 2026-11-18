@@ -2,6 +2,9 @@
 //
 // - Inline mode: in any chat, "@bot" lists the newest clips; "@bot hoshoryu" filters by shikona. Picking one sends
 //   the video with the bout title as its caption, in a single message.
+// - Inline extras: "@bot" (or "@bot standings" / "@bot app") also offers the current standings (the final result
+//   between basho) and a link to the app, each sent as a text message.
+// - Commands in a chat with the bot: /standings, /app.
 // - "/start <clipId>" (old "Send via Telegram" links from the app): the bot replies with that clip and a
 //   "Send to a chat" button, which opens Telegram's chat picker with the clip ready to send.
 import type { NextRequest } from "next/server";
@@ -9,6 +12,7 @@ import { getClips, store, type Clip } from "@/lib/content";
 import { hygraphStore } from "@/lib/content/hygraph-store";
 import { parseBoutId } from "@/lib/format";
 import { getTorikumi } from "@/lib/sumo-data";
+import { appMessage, standingsMessage } from "@/lib/telegram-messages";
 import { clipCaption, telegramBotUsername, telegramConfigured, tg, UNSENDABLE_TEXT, unsendableReason } from "@/lib/telegram";
 
 type Update = {
@@ -117,16 +121,55 @@ async function torikumiOrder(clips: Clip[], take: number): Promise<Clip[]> {
 /** The text sent with a clip: the bout title, a blank line, then a link to the bout page. */
 const sentCaption = (c: Clip, origin: string) => `${clipCaption(c)}\n\nFull details: ${origin}/bout/${c.boutId}`;
 
+/** Which text extras an inline query asks for: all of them for an empty query, else by prefix ("stan", "app"). */
+function wantedExtras(query: string) {
+  const q = norm(query.trim());
+  const matches = (...keys: string[]) => !q || keys.some((k) => k.startsWith(q) || q.startsWith(k));
+  return { standings: matches("standings", "table", "results"), app: matches("app", "link", "sumo ring", "website") };
+}
+
 async function answerInline(query: { id: string; query: string }, origin: string) {
-  const clips = (await torikumiOrder(await findClips(query.query), MAX_RESULTS)).slice(0, MAX_RESULTS);
+  const extras = wantedExtras(query.query);
+  const [found, standings] = await Promise.all([
+    findClips(query.query),
+    extras.standings ? standingsMessage(origin).catch(() => null) : null,
+  ]);
+  const clips = (await torikumiOrder(found, MAX_RESULTS)).slice(0, MAX_RESULTS);
   const reasons = await Promise.all(clips.map((c) => unsendableReason(c.videoUrl)));
   const thumbnail_url = `${origin}/pwa-icon/192`;
+  // A clip id (the "Send to a chat" button) means exactly that clip: no extras.
+  const byId = clips.length === 1 && clips[0].id === query.query.trim();
+  const extraResults = byId
+    ? []
+    : [
+        ...(standings
+          ? [{
+              type: "article",
+              id: "standings",
+              title: "📊 Current standings",
+              description: standings.split("\n")[0],
+              thumbnail_url,
+              input_message_content: { message_text: standings, link_preview_options: { is_disabled: true } },
+            }]
+          : []),
+        ...(extras.app
+          ? [{
+              type: "article",
+              id: "app",
+              title: "📱 Link to Sumo Ring",
+              description: origin.replace(/^https?:\/\//, ""),
+              thumbnail_url,
+              url: origin,
+              input_message_content: { message_text: appMessage(origin) },
+            }]
+          : []),
+      ];
   await tg("answerInlineQuery", {
     inline_query_id: query.id,
     cache_time: 30,
     // Clips Telegram can't fetch by URL (too large, not MP4) still appear, as a link to the bout, rather than
     // silently vanishing from the list.
-    results: clips.map((c, i) => {
+    results: [...extraResults, ...clips.map((c, i) => {
       const caption = clipCaption(c);
       const title = `${c.eastShikona} vs ${c.westShikona}`;
       const reason = reasons[i];
@@ -143,21 +186,35 @@ async function answerInline(query: { id: string; query: string }, origin: string
         url: link,
         input_message_content: { message_text: sentCaption(c, origin) },
       };
-    }),
+    })],
   });
 }
 
 async function answerMessage(chatId: number, text: string, origin: string) {
   const [cmd, arg = ""] = text.trim().split(/\s+/, 2);
-  if (cmd.split("@")[0] === "/debug") {
+  const command = cmd.split("@")[0];
+  if (command === "/debug") {
     await tg("sendMessage", { chat_id: chatId, text: await debugText() });
+    return;
+  }
+  if (command === "/standings") {
+    await tg("sendMessage", { chat_id: chatId, text: await standingsMessage(origin), link_preview_options: { is_disabled: true } });
+    return;
+  }
+  if (command === "/app") {
+    await tg("sendMessage", { chat_id: chatId, text: appMessage(origin) });
     return;
   }
   const clip = cmd === "/start" && arg ? (await findClips(arg)).find((c) => c.id === arg) : undefined;
   if (!clip) {
     await tg("sendMessage", {
       chat_id: chatId,
-      text: `Type @${telegramBotUsername() ?? "this bot"} in any chat to send a sumo clip, e.g. "@${telegramBotUsername() ?? "bot"} hoshoryu". Or search by day, e.g. "@${telegramBotUsername() ?? "bot"} day 11".`,
+      text: [
+        `Type @${telegramBotUsername() ?? "this bot"} in any chat to send a sumo clip, e.g. "@${telegramBotUsername() ?? "bot"} hoshoryu" or "@${telegramBotUsername() ?? "bot"} day 11".`,
+        `"@${telegramBotUsername() ?? "bot"} standings" sends the current standings and "@${telegramBotUsername() ?? "bot"} app" a link to Sumo Ring.`,
+        "",
+        "Here: /standings · /app",
+      ].join("\n"),
     });
     return;
   }
