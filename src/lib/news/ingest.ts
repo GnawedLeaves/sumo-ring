@@ -2,17 +2,19 @@
 // already stored (adding any new outlets to them) -> tag by keyword rules -> machine-translate the headline and
 // a short lead with DeepL -> save to the content store (Hygraph). Triggered by /api/cron/news (Render Cron Job).
 //
-// Only the headline and a ~150-character lead are translated and shown; readers follow the source links for
-// the full story. Republishing whole translated articles would copy the outlets' copyrighted text.
+// Only the headline and a ~150-character lead are translated and stored. Signed-in users can read the full article
+// in English on the story page, translated on demand and never stored (./fulltext.ts) — republishing whole translated
+// articles publicly would copy the outlets' copyrighted text.
 import "server-only";
 import { store, type NewsArticle, type NewsSource } from "@/lib/content";
 import { cluster, normTitle, sameStory, type Comparable } from "./cluster";
 import { FEEDS, fetchFeed, type FeedItem } from "./feeds";
+import { readableSource } from "./fulltext";
 import { findRikishi, loadNameTable, romaniseNames, tagStory, type NameTable } from "./tags";
 import { translate, translatorConfigured } from "./translate";
 
-/** Cap per run so a backlog can't burn through the DeepL quota (~200 source characters per story). */
-const MAX_PER_RUN = 30;
+/** A few stories per run, each readable in full on its page, rather than many briefs. */
+const MAX_PER_RUN = 5;
 /** Ignore items older than this (first run / feeds that keep old entries). */
 const MAX_AGE_DAYS = 7;
 /** Japanese characters of lead text to translate and show. */
@@ -123,9 +125,13 @@ export async function ingestNews({ dryRun = false, limit = MAX_PER_RUN } = {}): 
     }
   }
 
-  // Newest first; a story's time is its earliest report.
+  // Stories whose full text can be read first (not Google News-only), then newest first; a story's time is its
+  // earliest report.
   const storyTime = (s: Item[]) => Math.min(...s.map((i) => i.time));
-  const batch = fresh.sort((a, b) => storyTime(b) - storyTime(a)).slice(0, Math.min(limit, MAX_PER_RUN));
+  const readable = (s: Item[]) => (readableSource(s.map(toSource)) ? 0 : 1);
+  const batch = fresh
+    .sort((a, b) => readable(a) - readable(b) || storyTime(b) - storyTime(a))
+    .slice(0, Math.min(limit, MAX_PER_RUN));
 
   // 4. Tag + translate
   const prepared = batch.map((story) => {

@@ -2,8 +2,10 @@ import { Spinner } from "@/components/spinner";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { getNewsArticle } from "@/lib/content";
+import { getViewer } from "@/lib/auth/session";
+import { getNewsArticle, type NewsArticle } from "@/lib/content";
 import { formatDate } from "@/lib/format";
+import { getFullTranslation, readableSource } from "@/lib/news/fulltext";
 
 export default function Page({ params }: PageProps<"/news/[slug]">) {
   return (
@@ -49,6 +51,9 @@ async function Article({ params }: Pick<PageProps<"/news/[slug]">, "params">) {
           ))}
         </div>
       )}
+      <Suspense fallback={<Spinner label="Translating the full article" />}>
+        <FullArticle article={a} />
+      </Suspense>
       {a.sources[0] && (
         <a href={a.sources[0].url} target="_blank" rel="noopener noreferrer" className="btn-pill self-start bg-cobalt-stage">
           Read the full story{a.sources[0].publisher ? ` at ${a.sources[0].publisher}` : ""} ↗
@@ -70,5 +75,43 @@ async function Article({ params }: Pick<PageProps<"/news/[slug]">, "params">) {
         </section>
       )}
     </article>
+  );
+}
+
+/**
+ * The whole source article in English, for signed-in viewers only. It's translated on demand and never stored or
+ * shown publicly — republishing the outlets' full text on a public page would copy their copyrighted work.
+ */
+async function FullArticle({ article }: { article: NewsArticle }) {
+  const source = readableSource(article.sources);
+  if (!source) return null;
+  const viewer = await getViewer();
+  if (!viewer) {
+    return (
+      <p className="rounded-lg border border-line p-4 text-body-sm text-ink-soft">
+        <Link href={`/login?next=${encodeURIComponent(`/news/${article.slug}`)}`} className="link-accent border-tangerine-pop">
+          Sign in
+        </Link>{" "}
+        to read the full article in English.
+      </p>
+    );
+  }
+  const full = await getFullTranslation(source.url);
+  if (!full.ok) {
+    console.error(`[news] full text for ${article.slug} (${source.url}): ${full.error}`);
+    return <p className="text-body-sm text-ink-soft">The full article couldn&apos;t be loaded right now. Use the link below to read it at the source.</p>;
+  }
+  return (
+    <section className="flex flex-col gap-4 border-t border-line pt-4">
+      <h2 className="text-caption font-bold uppercase text-ink-soft">
+        Full article{source.publisher ? ` · ${source.publisher}` : ""} · Machine-translated
+      </h2>
+      <div className="flex flex-col gap-4 text-body">
+        {full.paragraphs.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+      {full.truncated && <p className="text-body-sm text-ink-soft">The article continues at the source.</p>}
+    </section>
   );
 }

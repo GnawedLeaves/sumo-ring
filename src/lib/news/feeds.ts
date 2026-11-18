@@ -1,5 +1,5 @@
-// Japanese sumo news feeds. Only feeds the publishers / aggregators offer for syndication — we never crawl
-// article pages. Verified Nov 2026.
+// Japanese sumo news feeds. Only feeds the publishers / aggregators offer for syndication — ingest never crawls
+// article pages (fulltext.ts fetches one on demand for signed-in readers). Verified Nov 2026.
 import "server-only";
 import { createHash } from "node:crypto";
 

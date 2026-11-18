@@ -59,7 +59,8 @@ then persists between requests, which keeps load on the Sumo API low. The retire
 
 1. **Reads feeds** (`src/lib/news/feeds.ts`): Nikkan Sports' sumo Atom feed, a Google News search for 大相撲
    (last 7 days, ~100 headlines across Jiji, NHK, Sponichi, Hochi, Yomiuri…), and Yahoo! News feeds for
-   Tokyo Sports and Sponichi (filtered to sumo by keyword). Feeds only — article pages are never crawled.
+   Tokyo Sports and Sponichi (filtered to sumo by keyword). Ingest reads feeds only; article pages are fetched
+   one at a time, on demand, for the full-text view (step 5).
 2. **Groups the same story** across outlets (`cluster.ts`): similar headlines, the same two rikishi on the same
    day, or the same rikishi + event (金星, 優勝, 休場, 引退…) on the same day. One article, several source links.
    Outlets that report a stored story later are added to its sources.
@@ -67,12 +68,17 @@ then persists between requests, which keeps load on the Sumo API low. The retire
    matched against the Sumo API's kanji shikona (old/new kanji forms like 琴櫻/琴桜 are folded together).
 4. **Translates with DeepL** (`translate.ts`): the headline and a ~150-character lead only. Shikona are swapped
    for their official romanisation first, so 豊昇龍 becomes "Hoshoryu" rather than a literal reading.
-   Readers follow "Read the full story" to the outlet — we don't republish whole translated articles.
+   These are what's stored and shown publicly — we don't republish whole translated articles.
+5. **Full article for signed-in users** (`fulltext.ts`): the story page fetches one source article page
+   (Nikkan Sports or Yahoo! News — Google News links can't be resolved), translates every paragraph with DeepL and
+   shows it to signed-in viewers only. Nothing is stored; the translation is cached on the server for a day per URL.
+   Stories with a readable outlet are picked first.
 
 - Needs `DEEPL_API_KEY` ([free API key](https://www.deepl.com/pro-api): 500,000 characters/month; free keys end
   in `:fx`), `CRON_SECRET`, and the `NewsArticle` model in Hygraph (docs/HYGRAPH.md).
-- Usage: ~200 Japanese characters per new story, max 30 stories per run. A busy basho day is ~40–60 new
-  stories, so roughly 250–350k characters a month — inside the free tier.
+- Usage: max 5 stories per run at ~200 Japanese characters each (~30k characters a month), plus ~1–3k characters
+  each time a signed-in user opens a full article that isn't cached yet (capped at 6,000) — inside the free tier for
+  personal use.
 - Requests must send `Authorization: Bearer $CRON_SECRET`. Add `?dry=1` to list the stories it would create,
   with tags and every grouped headline, without calling DeepL or writing anything.
 - **Schedule on Vercel:** `vercel.json` registers a Vercel Schedule `news-ingest` that runs daily at 12:00 UTC
