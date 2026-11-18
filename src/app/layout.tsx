@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Noto_Sans_JP } from "next/font/google";
-import { ViewTransition } from "react";
 import { AuthProvider } from "@/components/account/auth-provider";
 import { ServiceWorker } from "@/components/service-worker";
 import { SiteHeader } from "@/components/site-header";
 import { MobileNav } from "@/components/site-nav";
-import { THEME_SCRIPT, VIEW_TRANSITION_GUARD_SCRIPT } from "@/lib/theme";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -50,8 +49,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
-        {/* One inline script, run before first paint: saved theme + view-transition guard (see lib/theme.ts). */}
-        <script dangerouslySetInnerHTML={{ __html: `${THEME_SCRIPT};${VIEW_TRANSITION_GUARD_SCRIPT}` }} />
+        {/* Inline script, run before first paint: applies the saved theme (see lib/theme.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col">
         {/* Shared browser-side sign-in state (header avatar, comments, profile). Display only — the server re-checks. */}
@@ -59,8 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteHeader />
           {/* Bottom padding keeps content clear of the fixed mobile tab bar. */}
           <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-            {/* Crossfades the page on navigation and when loading states resolve (styles: .page-fade in globals.css). */}
-            <ViewTransition default="page-fade">{children}</ViewTransition>
+            {children}
           </main>
           <MobileNav />
         </AuthProvider>

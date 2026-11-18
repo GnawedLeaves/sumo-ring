@@ -132,42 +132,6 @@ body {
   animation: spinner-appear 200ms ease-out 150ms both;
 }
 
-/*
- * Page transitions (React <ViewTransition> around <main> in the root layout): navigations and loading
- * spinners resolving into content crossfade instead of swapping instantly. Header and bottom nav stay put.
- */
-::view-transition {
-  pointer-events: none; /* clicks during the fade reach the live page */
-}
-::view-transition-old(.page-fade) {
-  animation: 120ms ease-in both page-fade-out;
-}
-::view-transition-new(.page-fade) {
-  animation: 220ms ease-out 60ms both page-fade-in;
-}
-::view-transition-group(.page-fade) {
-  animation-duration: 0s; /* no size/position morph — just the fade */
-}
-@keyframes page-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes page-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
-}
-
 @layer components {
   .page {
     @apply mx-auto w-full max-w-[1200px] px-4 py-8 md:px-6 md:py-16;
