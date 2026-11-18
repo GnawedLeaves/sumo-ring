@@ -5,7 +5,7 @@
 // - "/start <clipId>" (the app's "Send via Telegram" link): the bot replies with that clip and a
 //   "Send to a chat" button, which opens Telegram's chat picker with the clip ready to send.
 import type { NextRequest } from "next/server";
-import { getClips, type Clip } from "@/lib/content";
+import { getClips, store, type Clip } from "@/lib/content";
 import { parseBoutId } from "@/lib/format";
 import { getTorikumi } from "@/lib/sumo-data";
 import { clipCaption, telegramBotUsername, telegramConfigured, tg, UNSENDABLE_TEXT, unsendableReason } from "@/lib/telegram";
@@ -37,8 +37,21 @@ export async function POST(request: NextRequest) {
 
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 
+/**
+ * All clips, newest first, read straight from the store. The cached getClips() is kept per server instance, so the
+ * bot's copy could miss clips uploaded since (e.g. a whole new day) even when the app's pages show them.
+ */
+async function freshClips(): Promise<Clip[]> {
+  try {
+    return await store.listClips();
+  } catch (e) {
+    console.error(`[telegram] listClips: ${e instanceof Error ? e.message : e}`);
+    return getClips();
+  }
+}
+
 async function findClips(query: string): Promise<Clip[]> {
-  const all = await getClips(); // newest first, cached (tag: clips)
+  const all = await freshClips();
   const q = query.trim();
   if (!q) return all;
   const exact = all.find((c) => c.id === q);
