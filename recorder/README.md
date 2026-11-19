@@ -10,6 +10,23 @@ cd recorder
 npm install
 ```
 
+## Step 1: live clips to a local folder (no upload yet)
+
+```bash
+npm run watch -- https://www.twitch.tv/leodickinsonsumo
+```
+
+Watches the stream and saves each bout as soon as it ends to `recorder/clips/<date>/`
+(`001-<result time>-<winner side>.mp4`), with every clip's times in `clips.jsonl`. Nothing is uploaded.
+Ctrl+C stops (the bout in progress is still cut if its result was seen).
+
+| Option | |
+|---|---|
+| `--out <folder>` | Save somewhere else, e.g. `--out "C:/Users/<you>/Desktop/sumo-clips"` |
+| `--minutes N` | Stop after N minutes |
+| `--keep` | Also keep the full recording (2 s pieces in `.pieces-<time>/`) for re-running `replay` later |
+| (a video file instead of a URL) | Plays the file in real time as if it were live, for testing; add `--fast` to go as fast as possible |
+
 ## Calibration kit (local)
 
 | Command | What it does |

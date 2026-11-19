@@ -95,26 +95,34 @@ export function planClips(events: EndEvent[], loud: Loud[]): ClipPlan[] {
   const plans: ClipPlan[] = [];
   let prev: EndEvent | null = null;
   for (const ev of events) {
-    const from = prev ? prev.t : ev.t - WINDOW.maxBoutSec;
-    const tachiai = findTachiai(loud, ev.t, Math.max(from, ev.t - WINDOW.maxBoutSec));
-    const afterYellow = ev.followsYellow;
-    if (afterYellow && tachiai === null) {
+    const plan = planOne(ev, prev, loud);
+    if (plan) plans.push(plan);
+    else {
       // Confirmation of the yellow bout's result: record the winner on that clip, no new clip.
       const last = plans.at(-1);
       if (last) last.winner = ev.side;
-      prev = ev;
-      continue;
     }
-    plans.push({
-      endT: ev.t,
-      kind: ev.kind,
-      winner: ev.kind === "red" ? ev.side : null,
-      tachiaiT: tachiai,
-      startT: Math.max(0, (tachiai ?? ev.t - WINDOW.fallbackSec) - (tachiai === null ? 0 : WINDOW.beforeSec)),
-      stopT: ev.t + WINDOW.afterSec,
-      note: afterYellow ? "Rematch" : tachiai === null ? "fallback" : undefined,
-    });
     prev = ev;
   }
   return plans;
+}
+
+/**
+ * Plans the clip for one end event, given the event before it (the tachiai can't be before that one).
+ * Returns null when the event only confirms the previous (yellow) clip — see planClips.
+ * `loud` must cover [ev.t - maxBoutSec, ev.t]; the live watcher keeps a rolling window of it.
+ */
+export function planOne(ev: EndEvent, prev: EndEvent | null, loud: Loud[]): ClipPlan | null {
+  const from = Math.max(prev ? prev.t : -Infinity, ev.t - WINDOW.maxBoutSec);
+  const tachiai = findTachiai(loud, ev.t, from);
+  if (ev.followsYellow && tachiai === null) return null;
+  return {
+    endT: ev.t,
+    kind: ev.kind,
+    winner: ev.kind === "red" ? ev.side : null,
+    tachiaiT: tachiai,
+    startT: Math.max(0, tachiai === null ? ev.t - WINDOW.fallbackSec : tachiai - WINDOW.beforeSec),
+    stopT: ev.t + WINDOW.afterSec,
+    note: ev.followsYellow ? "Rematch" : tachiai === null ? "fallback" : undefined,
+  };
 }

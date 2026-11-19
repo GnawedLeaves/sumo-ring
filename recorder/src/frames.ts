@@ -28,7 +28,13 @@ export async function* stripFrames(input: string, fps = 4, extraArgs: string[] =
 }
 
 /** Loudness per `stepMs` window: RMS (0-1) of the mono mix, and of a voice-band (300-3000 Hz) filtered copy. */
-export async function loudness(input: string, stepMs = 100, extraArgs: string[] = []): Promise<{ t: number; rms: number; voice: number }[]> {
+export async function loudness(
+  input: string,
+  stepMs = 100,
+  extraArgs: string[] = [],
+  /** Skip the full-mix pass (the tachiai detector only uses the voice band): one ffmpeg run instead of two. */
+  { voiceOnly = false } = {},
+): Promise<{ t: number; rms: number; voice: number }[]> {
   const rate = 16000;
   const read = (filter: string) =>
     new Promise<Float64Array>((resolve, reject) => {
@@ -52,6 +58,7 @@ export async function loudness(input: string, stepMs = 100, extraArgs: string[] 
         resolve(out);
       });
     });
-  const [all, voice] = await Promise.all([read("anull"), read("highpass=f=300,lowpass=f=3000")]);
-  return Array.from(all, (rms, i) => ({ t: (i * stepMs) / 1000, rms, voice: voice[i] ?? 0 }));
+  const voice = await read("highpass=f=300,lowpass=f=3000");
+  const all = voiceOnly ? null : await read("anull");
+  return Array.from(voice, (v, i) => ({ t: (i * stepMs) / 1000, rms: all?.[i] ?? 0, voice: v }));
 }

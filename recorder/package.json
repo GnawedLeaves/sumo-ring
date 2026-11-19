@@ -7,6 +7,7 @@
     "node": ">=22.6"
   },
   "scripts": {
+    "watch": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/watch.ts",
     "record": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/record.ts",
     "replay": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/replay.ts",
     "probe": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/probe.ts",
