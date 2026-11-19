@@ -71,7 +71,7 @@ async function RikishiDetail({ params }: Pick<PageProps<"/rikishi/[id]">, "param
           <section className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4">
             {[
               ["Career record", record(stats.totalWins, stats.totalLosses, stats.totalAbsences)],
-              ["Win rate", pct(stats.totalWins, bouts)],
+              ["Win rate", pct(stats.totalWins, bouts, 2)],
               ["Yūshō 優勝 (all divisions)", stats.yusho],
               ["Makuuchi 幕内 yūshō 優勝", stats.yushoByDivision?.Makuuchi ?? 0],
               ["Basho", stats.basho],

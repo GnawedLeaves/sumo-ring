@@ -50,6 +50,7 @@ export function topEntries(rec: Record<string, number> | undefined, n = 5) {
     .slice(0, n);
 }
 
-export function pct(n: number, d: number) {
-  return d ? `${Math.round((n / d) * 100)}%` : "—";
+/** "53%", or with `decimals` "53.27%". */
+export function pct(n: number, d: number, decimals = 0) {
+  return d ? `${((n / d) * 100).toFixed(decimals)}%` : "—";
 }
