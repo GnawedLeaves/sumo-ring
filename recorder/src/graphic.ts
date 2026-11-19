@@ -28,7 +28,16 @@ export type SideFeatures = {
   yellow: number;
 };
 
-export type Features = { east: SideFeatures; west: SideFeatures };
+/**
+ * `present`: the graphic is actually on screen. When it's up, the name boxes are 69-83% light pixels (white or
+ * pink, with dark text) and the score boxes 79-85%. ABEMA's replay transition (~2 s black, then ~2 s white wipe)
+ * reads 0% / 100%. Without this, that gap looked like "both boxes normal" and re-armed the detector, so the replay
+ * that follows (graphic still red) was counted as a second result.
+ */
+export type Features = { east: SideFeatures; west: SideFeatures; present: boolean };
+
+const isLight = (r: number, g: number, b: number) => r + g + b >= 540;
+export const PRESENT = { nameLightMin: 0.4, nameLightMax: 0.93, scoreLightMin: 0.5 } as const;
 
 const isStrongRed = (r: number, g: number, b: number) => r > 170 && g < 100 && b < 100;
 const isRedOrange = (r: number, g: number, b: number) => r > 190 && g < 140 && b < 120 && r - g > 70;
@@ -83,5 +92,10 @@ export function readGraphic(px: Buffer): Features {
       yellow: measure(px, STRIP.w, name, isYellow),
     };
   };
-  return { east: side("east"), west: side("west") };
+  const present = (["east", "west"] as const).every((s) => {
+    const name = measure(px, STRIP.w, inset(BOXES[s].name, 8, 20), isLight);
+    const score = measure(px, STRIP.w, inset(BOXES[s].score, 5), isLight);
+    return name >= PRESENT.nameLightMin && name <= PRESENT.nameLightMax && score >= PRESENT.scoreLightMin;
+  });
+  return { east: side("east"), west: side("west"), present };
 }

@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EndDetector, planOne, WINDOW, type ClipPlan, type EndEvent } from "./bouts.ts";
-import { FFMPEG, loudness, stripFrames } from "./frames.ts";
+import { CLIP_AUDIO, FFMPEG, loudness, stripFrames } from "./frames.ts";
 import { readGraphic } from "./graphic.ts";
 import type { Loud } from "./tachiai.ts";
 import { channelLogin, liveVariants, pickVariant } from "./twitch.ts";
@@ -128,7 +128,7 @@ async function cut(plan: ClipPlan) {
     const ff = spawn(FFMPEG, [
       "-v", "error", "-f", "concat", "-safe", "0", "-i", listPath,
       "-ss", String(offset), "-t", String(plan.stopT - plan.startT),
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", file,
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", ...CLIP_AUDIO, "-movflags", "+faststart", "-y", file,
     ], { stdio: ["ignore", "inherit", "inherit"] });
     ff.on("close", () => resolve());
   });

@@ -10,10 +10,21 @@ export type Loud = { t: number; rms: number; voice: number };
 export const TACHIAI = {
   /** How far back from the result to look. */
   maxLookbackSec: 180,
-  /** A "quiet stretch" must last at least this long (the final crouch; can be under a second after a late call). Mid-bout audio never drops this low. */
-  minQuietSec: 0.5,
-  /** Quiet = below this share of the loud level. The shikiri hush is ~1% of it; mid-bout lulls stay at ~8%+. */
+  /**
+   * A "quiet stretch" must last at least this long. Real crouch hushes measured 0.75-1.5 s (Kyushu 2026 day 11 +
+   * day 12 re-run); a mid-bout stalemate lull reached 0.5 s, which 0.5 let through. Was 0.5 (1.5 missed a short
+   * hush after a late call).
+   */
+  minQuietSec: 0.75,
+  /** Quiet = below this share of the loud level (the floor of the quiet threshold). */
   quietRatio: 0.04,
+  /**
+   * …or below this multiple of the window's background level (its 20th-percentile loudness), whichever is higher.
+   * The crouch hush relative to the loud level varies a lot by hall/mix: ~3% on some clips, 11-15% on others
+   * (Kyushu 2026 day 11), so a fixed 4% missed 6 of 8 tachiai.
+   */
+  floorFactor: 1.4,
+  floorPercentile: 0.2,
   /** Onset = first window at least this share of the loud level, right after the quiet. */
   onsetRatio: 0.3,
 } as const;
@@ -30,7 +41,8 @@ export function findTachiai(loud: Loud[], beforeT: number, from = beforeT - TACH
   const sorted = win.map((l) => l.voice).sort((a, b) => a - b);
   const loudRef = sorted[Math.floor(sorted.length * 0.9)];
   if (!loudRef) return null;
-  const quietMax = loudRef * TACHIAI.quietRatio;
+  const floor = sorted[Math.floor(sorted.length * TACHIAI.floorPercentile)];
+  const quietMax = Math.max(loudRef * TACHIAI.quietRatio, floor * TACHIAI.floorFactor);
   const onsetMin = loudRef * TACHIAI.onsetRatio;
   const minQuietN = Math.ceil(TACHIAI.minQuietSec / step);
 

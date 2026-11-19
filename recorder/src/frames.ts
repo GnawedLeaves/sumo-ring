@@ -6,6 +6,13 @@ import { STRIP } from "./graphic.ts";
 
 export const FFMPEG = ffmpegPath as unknown as string;
 
+/**
+ * Audio settings for saved clips. The stream is quiet (mean ≈ -32 dB, the crouch hush ≈ -55 dB), so clips sounded
+ * silent on laptop speakers; loudnorm brings them to the usual web loudness (-16 LUFS, peaks ≤ -1.5 dB).
+ * loudnorm works at 192 kHz internally, hence the explicit -ar.
+ */
+export const CLIP_AUDIO = ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "44100", "-c:a", "aac", "-b:a", "128k"];
+
 /** Yields [timeSec, frame] for the graphic strip at `fps`, scaled from a 1280x720 frame. */
 export async function* stripFrames(input: string, fps = 4, extraArgs: string[] = []): AsyncGenerator<[number, Buffer]> {
   const size = STRIP.w * STRIP.h * 3;

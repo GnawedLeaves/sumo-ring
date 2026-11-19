@@ -21,8 +21,9 @@ export const WINDOW = {
   /** Seconds kept after the graphic highlights the result. Note the graphic updates ~5 s after the bout
    * actually ends, so this already includes ~10 s of reactions. */
   afterSec: 5,
-  /** When no tachiai is found: clip this long before the result. */
-  fallbackSec: 45,
+  /** When no tachiai is found: clip this long before the result (+ afterSec ≈ a 30 s clip, the owner's preferred
+   * length). The graphic lags the real end by ~5 s, so this still covers ~20 s of bout + the run-up. Was 45 s. */
+  fallbackSec: 25,
   /** A result needs a tachiai at most this long before it (longest bouts are ~4 min, very rare). */
   maxBoutSec: 180,
 } as const;
@@ -36,12 +37,20 @@ const sideState = (s: SideFeatures): "red" | "yellow" | "normal" =>
 
 /** Feed frames in time order; returns an event when a highlight first holds. Stateful (one per stream). */
 export class EndDetector {
-  private armed = true;
+  // Starts disarmed: joining mid-afternoon, the previous bout's result is usually still highlighted, and that
+  // isn't a new result. Arms once both boxes have been normal for rearmSec (the next bout's graphic).
+  private armed = false;
   private lastKind: "red" | "yellow" | null = null;
   private candidate: { t: number; kind: "red" | "yellow"; side: Side } | null = null;
   private normalSince: number | null = null;
 
   push(t: number, g: Features): EndEvent | null {
+    // Graphic off screen (replay transition, close-up without it): tells us nothing. It neither counts as a
+    // result nor as "back to normal", and it breaks a normal streak so re-arming needs the real graphic.
+    if (!g.present) {
+      this.normalSince = null;
+      return null;
+    }
     const e = sideState(g.east);
     const w = sideState(g.west);
     const hit = e !== "normal" ? { kind: e, side: "east" as const } : w !== "normal" ? { kind: w, side: "west" as const } : null;

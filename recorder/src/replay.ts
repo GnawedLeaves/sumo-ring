@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EndDetector, planClips, type EndEvent } from "./bouts.ts";
-import { FFMPEG, loudness, stripFrames } from "./frames.ts";
+import { CLIP_AUDIO, FFMPEG, loudness, stripFrames } from "./frames.ts";
 import { readGraphic } from "./graphic.ts";
 
 const args = process.argv.slice(2);
@@ -51,7 +51,7 @@ if (cut) {
     await new Promise<void>((resolve) => {
       const ff = spawn(FFMPEG, [
         "-v", "error", "-ss", String(p.startT), "-to", String(p.stopT), "-i", input,
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", file,
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", ...CLIP_AUDIO, "-movflags", "+faststart", "-y", file,
       ], { stdio: ["ignore", "inherit", "inherit"] });
       ff.on("close", () => resolve());
     });
