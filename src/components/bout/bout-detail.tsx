@@ -271,14 +271,35 @@ function bashoResults(id: number, matches: Match[], entry?: BanzukeEntry): Basho
   return [...rows.values()].sort((a, c) => c.day - a.day);
 }
 
-/** Score so far ("8-3", or "8-3-4" with absences): the official banzuke record, else counted from the rows. */
-function bashoScore(rows: BashoResult[], entry?: BanzukeEntry) {
-  if (entry) return record(entry.wins, entry.losses, entry.absences);
+type Score = { wins: number; losses: number; rest: number };
+
+/** Score so far: the official banzuke record, else counted from the rows. */
+function bashoScore(rows: BashoResult[], entry?: BanzukeEntry): Score {
+  if (entry) return { wins: entry.wins, losses: entry.losses, rest: entry.absences };
   const n = (k: BashoResult["result"]) => rows.filter((x) => x.result === k).length;
-  return record(n("win"), n("loss"), n("rest"));
+  return { wins: n("win"), losses: n("loss"), rest: n("rest") };
 }
 
-type Side = { rows: BashoResult[]; score: string };
+/** "6 wins 勝 6 losses 敗 2 rest 休" (rest only when there is any). Each part wraps as a whole. */
+function ScoreText({ score, right = false }: { score: Score; right?: boolean }) {
+  const parts: [number, string, string][] = [
+    [score.wins, score.wins === 1 ? "win" : "wins", "勝"],
+    [score.losses, score.losses === 1 ? "loss" : "losses", "敗"],
+    ...(score.rest ? [[score.rest, "rest", "休"] as [number, string, string]] : []),
+  ];
+  return (
+    <p className={`flex flex-wrap gap-x-3 gap-y-0.5 pb-2 text-body-sm ${right ? "justify-end text-right" : ""}`}>
+      {parts.map(([n, en, jp]) => (
+        <span key={en} className="whitespace-nowrap">
+          <strong className="font-display text-subheading tabular-nums">{n}</strong> {en}
+          <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{jp}</span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
+type Side = { rows: BashoResult[]; score: Score };
 
 /**
  * Both rikishi's results side by side, one grid row per day (latest first), so a name that wraps to two lines makes
@@ -294,8 +315,8 @@ function BashoResultsTable({ east, west, jp }: { east: Side; west: Side; jp: Rec
   const days = [...new Set([...e.keys(), ...w.keys()])].sort((a, c) => c - a);
   return (
     <div className="grid grid-cols-2 gap-x-4 border-b border-line text-body-sm">
-      <p className="pb-2 font-display text-subheading font-bold tabular-nums">{east.score}</p>
-      <p className="pb-2 text-right font-display text-subheading font-bold tabular-nums">{west.score}</p>
+      <ScoreText score={east.score} />
+      <ScoreText score={west.score} right />
       {days.map((day) => (
         <Fragment key={day}>
           <ResultCell row={e.get(day)} jp={jp} />
