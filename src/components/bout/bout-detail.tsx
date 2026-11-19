@@ -163,7 +163,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
               ["Height", e.r?.height && `${e.r.height} cm`, w.r?.height && `${w.r.height} cm`],
               ["Weight", e.r?.weight && `${e.r.weight} kg`, w.r?.weight && `${w.r.weight} kg`],
               ["Career", e.stats && record(e.stats.totalWins, e.stats.totalLosses), w.stats && record(w.stats.totalWins, w.stats.totalLosses)],
-              ["Win rate", e.stats && pct(e.stats.totalWins, e.stats.totalWins + e.stats.totalLosses), w.stats && pct(w.stats.totalWins, w.stats.totalWins + w.stats.totalLosses)],
+              ["Win rate", e.stats && pct(e.stats.totalWins, e.stats.totalWins + e.stats.totalLosses, 2), w.stats && pct(w.stats.totalWins, w.stats.totalWins + w.stats.totalLosses, 2)],
               ["Makuuchi yūshō", e.stats?.yushoByDivision?.Makuuchi ?? 0, w.stats?.yushoByDivision?.Makuuchi ?? 0],
               ["Highest rank", <HighestRank key="e" r={e.r} />, <HighestRank key="w" r={w.r} />],
               ["Top kimarite", <Romaji key="e" text={e.profile.kimariteWins[0]?.[0]} kind="kimarite" />, <Romaji key="w" text={w.profile.kimariteWins[0]?.[0]} kind="kimarite" />],
