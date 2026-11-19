@@ -161,6 +161,11 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         )}
       </section>
 
+      {/* Admin: upload / delete clips and star the bout. Above the stats so it is reachable without scrolling far. */}
+      <Suspense fallback={null}>
+        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={title} />
+      </Suspense>
+
       {/* Stats */}
       <section className="flex flex-col gap-3">
         <h3 className="font-display text-subheading text-brand">Stats</h3>
@@ -225,9 +230,6 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {/* Fan comments (Firestore). Not in the compact Streams sidebar — too narrow, and it's a live view. */}
       {!compact && <BoutComments boutId={boutId} title={title} />}
 
-      <Suspense fallback={null}>
-        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={title} />
-      </Suspense>
     </article>
   );
 }
@@ -416,7 +418,7 @@ async function BoutClipVideos({ boutId, title }: { boutId: string; title: string
   );
 }
 
-/** Admin-only clip upload / delete, kept at the bottom of the bout. (getClips is cached, so this reuses the same fetch.) */
+/** Admin-only clip upload / delete, shown just above the stats. (getClips is cached, so this reuses the same fetch.) */
 async function BoutClipAdmin(props: { boutId: string; eastShikona: string; westShikona: string; defaultTitle: string }) {
   const b = parseBoutId(props.boutId);
   const [clips, starred] = await Promise.all([getClips({ boutId: props.boutId }), b ? getStarredBouts(b.bashoId) : ([] as string[])]);
