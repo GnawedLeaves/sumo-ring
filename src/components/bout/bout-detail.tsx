@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { Portrait } from "@/components/portrait";
 import { RikishiName } from "@/components/rikishi-name";
 import { VideoPlayer } from "@/components/video-player";
@@ -46,8 +46,10 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
     getBanzuke(b.bashoId, "Juryo", freshness),
   ]);
   const banzukeOf = (id: number) => [...(makuuchi ?? []), ...(juryo ?? [])].find((r) => r.rikishiID === id);
-  const eastResults = bashoResults(b.eastId, eastBasho, banzukeOf(b.eastId));
-  const westResults = bashoResults(b.westId, westBasho, banzukeOf(b.westId));
+  const eastEntry = banzukeOf(b.eastId);
+  const westEntry = banzukeOf(b.westId);
+  const eastResults = bashoResults(b.eastId, eastBasho, eastEntry);
+  const westResults = bashoResults(b.westId, westBasho, westEntry);
 
   const bout = eastBasho.find((m) => m.day === b.day && (m.westId === b.westId || m.eastId === b.westId));
   const recordTo = (matches: Match[], id: number) => {
@@ -191,10 +193,11 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {(eastResults.length > 0 || westResults.length > 0) && (
         <section className="flex flex-col gap-3">
           <h3 className="font-display text-subheading text-brand">This basho</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <BashoResults rows={eastResults} jp={bashoRecords} />
-            <BashoResults rows={westResults} jp={bashoRecords} align="right" />
-          </div>
+          <BashoResultsTable
+            east={{ rows: eastResults, score: bashoScore(eastResults, eastEntry) }}
+            west={{ rows: westResults, score: bashoScore(westResults, westEntry) }}
+            jp={bashoRecords}
+          />
         </section>
       )}
 
@@ -268,61 +271,82 @@ function bashoResults(id: number, matches: Match[], entry?: BanzukeEntry): Basho
   return [...rows.values()].sort((a, c) => c.day - a.day);
 }
 
+/** Score so far ("8-3", or "8-3-4" with absences): the official banzuke record, else counted from the rows. */
+function bashoScore(rows: BashoResult[], entry?: BanzukeEntry) {
+  if (entry) return record(entry.wins, entry.losses, entry.absences);
+  const n = (k: BashoResult["result"]) => rows.filter((x) => x.result === k).length;
+  return record(n("win"), n("loss"), n("rest"));
+}
+
+type Side = { rows: BashoResult[]; score: string };
+
 /**
- * Day, opponent (romaji + kanji) and a hoshi (star): white with a black outline for a win, black for a loss (green /
- * red in dark mode, see globals.css), 休 for a rest day. The right-hand column is mirrored so the marks sit by the
+ * Both rikishi's results side by side, one grid row per day (latest first), so a name that wraps to two lines makes
+ * the other side's cell just as tall and the marks stay level. The score so far heads each column. Each cell: day,
+ * opponent (romaji + kanji) and a hoshi (star): white with a black outline for a win, black for a loss (green / red
+ * in dark mode, see globals.css), 休 for a rest day. The right-hand column is mirrored so the marks sit by the
  * centre line.
  */
-function BashoResults({ rows, jp, align }: { rows: BashoResult[]; jp: Record<number, { jp?: string }>; align?: "right" }) {
-  const right = align === "right";
-  const rowClass = `flex items-center gap-2 py-2 ${right ? "flex-row-reverse text-right" : ""}`;
+function BashoResultsTable({ east, west, jp }: { east: Side; west: Side; jp: Record<number, { jp?: string }> }) {
+  const byDay = (rows: BashoResult[]) => new Map(rows.map((x) => [x.day, x]));
+  const e = byDay(east.rows);
+  const w = byDay(west.rows);
+  const days = [...new Set([...e.keys(), ...w.keys()])].sort((a, c) => c - a);
   return (
-    <ul className="flex min-w-0 flex-col divide-y divide-line border-y border-line text-body-sm">
-      {rows.map(({ day, result, opp, match }) => {
-        const kanji = opp && shikonaOnly(jp[opp.id]?.jp);
-        const what = result === "win" ? `won against ${opp?.en}` : result === "loss" ? `lost to ${opp?.en}` : "rested (kyūjō)";
-        const content = (
+    <div className="grid grid-cols-2 gap-x-4 border-b border-line text-body-sm">
+      <p className="pb-2 font-display text-subheading font-bold tabular-nums">{east.score}</p>
+      <p className="pb-2 text-right font-display text-subheading font-bold tabular-nums">{west.score}</p>
+      {days.map((day) => (
+        <Fragment key={day}>
+          <ResultCell row={e.get(day)} jp={jp} />
+          <ResultCell row={w.get(day)} jp={jp} right />
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function ResultCell({ row, jp, right = false }: { row?: BashoResult; jp: Record<number, { jp?: string }>; right?: boolean }) {
+  const cellClass = `flex h-full min-w-0 items-center gap-2 border-t border-line py-2 ${right ? "flex-row-reverse text-right" : ""}`;
+  if (!row) return <div className={cellClass} />;
+  const { day, result, opp, match } = row;
+  const kanji = opp && shikonaOnly(jp[opp.id]?.jp);
+  const what = result === "win" ? `won against ${opp?.en}` : result === "loss" ? `lost to ${opp?.en}` : "rested (kyūjō)";
+  const title = `Day ${day}: ${what}${match?.kimarite && result !== "rest" ? ` (${match.kimarite})` : ""}`;
+  const content = (
+    <>
+      <span className="shrink-0 tabular-nums text-ink-soft">Day {day}</span>
+      <span className="min-w-0 flex-1 break-words">
+        {opp ? (
           <>
-            <span className="shrink-0 tabular-nums text-ink-soft">Day {day}</span>
-            <span className="min-w-0 flex-1 break-words">
-              {opp ? (
-                <>
-                  <span className="font-bold">{opp.en}</span>
-                  {kanji && <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{kanji}</span>}
-                </>
-              ) : (
-                <span className="text-ink-soft">Absent</span>
-              )}
-            </span>
-            {result === "rest" ? (
-              <span lang="ja" aria-label="Rest" className="w-3 shrink-0 text-center font-jp text-caption font-bold leading-none">
-                休
-              </span>
-            ) : (
-              <span
-                role="img"
-                aria-label={result === "win" ? "Win" : "Loss"}
-                className={`h-3 w-3 shrink-0 rounded-full border ${result === "win" ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
-              />
-            )}
+            <span className="font-bold">{opp.en}</span>
+            {kanji && <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{kanji}</span>}
           </>
-        );
-        const title = `Day ${day}: ${what}${match?.kimarite && result !== "rest" ? ` (${match.kimarite})` : ""}`;
-        return (
-          <li key={day}>
-            {match ? (
-              <Link href={`/bout/${boutIdOf(match)}`} title={title} className={`${rowClass} hover:bg-hover`}>
-                {content}
-              </Link>
-            ) : (
-              <div title={title} className={rowClass}>
-                {content}
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+        ) : (
+          <span className="text-ink-soft">Absent</span>
+        )}
+      </span>
+      {result === "rest" ? (
+        <span lang="ja" aria-label="Rest" className="w-3 shrink-0 text-center font-jp text-caption font-bold leading-none">
+          休
+        </span>
+      ) : (
+        <span
+          role="img"
+          aria-label={result === "win" ? "Win" : "Loss"}
+          className={`h-3 w-3 shrink-0 rounded-full border ${result === "win" ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
+        />
+      )}
+    </>
+  );
+  return match ? (
+    <Link href={`/bout/${boutIdOf(match)}`} title={title} className={`${cellClass} hover:bg-hover`}>
+      {content}
+    </Link>
+  ) : (
+    <div title={title} className={cellClass}>
+      {content}
+    </div>
   );
 }
 
