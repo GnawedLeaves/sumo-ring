@@ -12,8 +12,8 @@ import { ShareVideoButton } from "@/components/bout/share-video-button";
 import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
 import { ageFrom, boutId as boutIdOf, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
-import { getBashoRecords, getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
-import type { Match, RankChange, Rikishi } from "@/lib/sumo-api";
+import { getBanzuke, getBashoRecords, getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
+import type { BanzukeEntry, Match, RankChange, Rikishi } from "@/lib/sumo-api";
 import { Romaji } from "@/components/jp";
 
 type Props = {
@@ -29,7 +29,7 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   if (!b) return <p className="text-body-sm">Unknown bout.</p>;
   const freshness = live ? "live" : "settled";
 
-  const [eastBasho, westBasho, east, west, eastStats, westStats, eastProfile, westProfile, h2h, portraits, bashoRecords] = await Promise.all([
+  const [eastBasho, westBasho, east, west, eastStats, westStats, eastProfile, westProfile, h2h, portraits, bashoRecords, makuuchi, juryo] = await Promise.all([
     getRikishiMatches(b.eastId, b.bashoId, freshness),
     getRikishiMatches(b.westId, b.bashoId, freshness),
     getRikishi(b.eastId),
@@ -41,7 +41,13 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
     getHeadToHead(b.eastId, b.westId),
     getPortraitMap(),
     getBashoRecords(b.bashoId, freshness), // Japanese shikona of this basho's opponents
+    // Day-by-day results incl. absent days (which have no torikumi row), for "This basho". Cached, shared with records.
+    getBanzuke(b.bashoId, "Makuuchi", freshness),
+    getBanzuke(b.bashoId, "Juryo", freshness),
   ]);
+  const banzukeOf = (id: number) => [...(makuuchi ?? []), ...(juryo ?? [])].find((r) => r.rikishiID === id);
+  const eastResults = bashoResults(b.eastId, eastBasho, banzukeOf(b.eastId));
+  const westResults = bashoResults(b.westId, westBasho, banzukeOf(b.westId));
 
   const bout = eastBasho.find((m) => m.day === b.day && (m.westId === b.westId || m.eastId === b.westId));
   const recordTo = (matches: Match[], id: number) => {
@@ -182,12 +188,12 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       </section>
 
       {/* Each rikishi's results so far this basho, latest day first, mirrored like the matchup above */}
-      {(eastBasho.some((m) => m.winnerId) || westBasho.some((m) => m.winnerId)) && (
+      {(eastResults.length > 0 || westResults.length > 0) && (
         <section className="flex flex-col gap-3">
           <h3 className="font-display text-subheading text-brand">This basho</h3>
           <div className="grid grid-cols-2 gap-4">
-            <BashoResults id={b.eastId} matches={eastBasho} jp={bashoRecords} />
-            <BashoResults id={b.westId} matches={westBasho} jp={bashoRecords} align="right" />
+            <BashoResults rows={eastResults} jp={bashoRecords} />
+            <BashoResults rows={westResults} jp={bashoRecords} align="right" />
           </div>
         </section>
       )}
@@ -238,37 +244,81 @@ function HighestRank({ r }: { r: Rikishi | null }) {
   );
 }
 
+type BashoResult = { day: number; result: "win" | "loss" | "rest"; opp?: { id: number; en: string }; match?: Match };
+
 /**
- * One rikishi's decided bouts this basho, latest first: day, opponent (romaji + kanji) and a hoshi (star): white with
- * a black outline for a win, black for a loss (green / red in dark mode, see globals.css). The right-hand column is mirrored so both dots sit by the centre line.
+ * One rikishi's results this basho, latest day first. A bout lost by default (fusen: they didn't turn up) and an
+ * absent day (kyūjō, no bout scheduled, so only in the banzuke record) are both "rest".
  */
-function BashoResults({ id, matches, jp, align }: { id: number; matches: Match[]; jp: Record<number, { jp?: string }>; align?: "right" }) {
-  const rows = matches.filter((m) => m.winnerId).sort((a, c) => c.day - a.day);
+function bashoResults(id: number, matches: Match[], entry?: BanzukeEntry): BashoResult[] {
+  const rows = new Map<number, BashoResult>();
+  for (const m of matches) {
+    if (!m.winnerId) continue; // not decided yet
+    const opp = m.eastId === id ? { id: m.westId, en: m.westShikona } : { id: m.eastId, en: m.eastShikona };
+    const result = m.winnerId === id ? "win" : m.kimarite === "fusen" ? "rest" : "loss";
+    rows.set(m.day, { day: m.day, result, opp, match: m });
+  }
+  // The banzuke record has one entry per day (day 1 first).
+  entry?.record?.forEach((r, i) => {
+    const day = i + 1;
+    if ((r.result === "absent" || r.result === "fusen loss") && !rows.has(day)) {
+      rows.set(day, { day, result: "rest", opp: r.opponentID ? { id: r.opponentID, en: r.opponentShikonaEn } : undefined });
+    }
+  });
+  return [...rows.values()].sort((a, c) => c.day - a.day);
+}
+
+/**
+ * Day, opponent (romaji + kanji) and a hoshi (star): white with a black outline for a win, black for a loss (green /
+ * red in dark mode, see globals.css), 休 for a rest day. The right-hand column is mirrored so the marks sit by the
+ * centre line.
+ */
+function BashoResults({ rows, jp, align }: { rows: BashoResult[]; jp: Record<number, { jp?: string }>; align?: "right" }) {
   const right = align === "right";
+  const rowClass = `flex items-center gap-2 py-2 ${right ? "flex-row-reverse text-right" : ""}`;
   return (
     <ul className="flex min-w-0 flex-col divide-y divide-line border-y border-line text-body-sm">
-      {rows.map((m) => {
-        const opp = m.eastId === id ? { id: m.westId, en: m.westShikona } : { id: m.eastId, en: m.eastShikona };
-        const won = m.winnerId === id;
-        const kanji = shikonaOnly(jp[opp.id]?.jp);
-        return (
-          <li key={`${m.day}-${m.matchNo}`}>
-            <Link
-              href={`/bout/${boutIdOf(m)}`}
-              title={`Day ${m.day}: ${won ? "won against" : "lost to"} ${opp.en}${m.kimarite ? ` (${m.kimarite})` : ""}`}
-              className={`flex items-center gap-2 py-2 hover:bg-hover ${right ? "flex-row-reverse text-right" : ""}`}
-            >
-              <span className="shrink-0 tabular-nums text-ink-soft">Day {m.day}</span>
-              <span className="min-w-0 flex-1 break-words">
-                <span className="font-bold">{opp.en}</span>
-                {kanji && <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{kanji}</span>}
+      {rows.map(({ day, result, opp, match }) => {
+        const kanji = opp && shikonaOnly(jp[opp.id]?.jp);
+        const what = result === "win" ? `won against ${opp?.en}` : result === "loss" ? `lost to ${opp?.en}` : "rested (kyūjō)";
+        const content = (
+          <>
+            <span className="shrink-0 tabular-nums text-ink-soft">Day {day}</span>
+            <span className="min-w-0 flex-1 break-words">
+              {opp ? (
+                <>
+                  <span className="font-bold">{opp.en}</span>
+                  {kanji && <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{kanji}</span>}
+                </>
+              ) : (
+                <span className="text-ink-soft">Absent</span>
+              )}
+            </span>
+            {result === "rest" ? (
+              <span lang="ja" aria-label="Rest" className="w-3 shrink-0 text-center font-jp text-caption font-bold leading-none">
+                休
               </span>
+            ) : (
               <span
                 role="img"
-                aria-label={won ? "Win" : "Loss"}
-                className={`h-3 w-3 shrink-0 rounded-full border ${won ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
+                aria-label={result === "win" ? "Win" : "Loss"}
+                className={`h-3 w-3 shrink-0 rounded-full border ${result === "win" ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
               />
-            </Link>
+            )}
+          </>
+        );
+        const title = `Day ${day}: ${what}${match?.kimarite && result !== "rest" ? ` (${match.kimarite})` : ""}`;
+        return (
+          <li key={day}>
+            {match ? (
+              <Link href={`/bout/${boutIdOf(match)}`} title={title} className={`${rowClass} hover:bg-hover`}>
+                {content}
+              </Link>
+            ) : (
+              <div title={title} className={rowClass}>
+                {content}
+              </div>
+            )}
           </li>
         );
       })}
