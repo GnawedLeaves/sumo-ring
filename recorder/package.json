@@ -11,7 +11,8 @@
     "record": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/record.ts",
     "replay": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/replay.ts",
     "probe": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/probe.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "upload": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/upload.ts"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0"

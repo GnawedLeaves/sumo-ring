@@ -2,6 +2,7 @@
 // Admin-only mutations. Every action re-checks the admin claim server-side — never trust the UI.
 import { updateTag } from "next/cache";
 import { requireAdmin } from "./auth/session";
+import { createUploadedClip } from "./clips";
 import { store, TAGS, type Platform, type StreamInput } from "./content";
 import { detectPlatform } from "./embed";
 import { parseBoutId } from "./format";
@@ -67,27 +68,13 @@ export async function reorderStreams(ids: string[]): Promise<ActionResult> {
 export async function saveClip(form: FormData): Promise<ActionResult> {
   try {
     await requireAdmin();
-    const bout = parseBoutId(String(form.get("boutId") ?? ""));
-    if (!bout) throw new Error("Unknown bout");
-    const assetId = String(form.get("assetId") ?? "");
-    if (!assetId) throw new Error("Choose a video file to upload");
-    const asset = await store.getUploadStatus(assetId);
-    if (!asset) throw new Error("Uploaded video not found in Hygraph");
-    if (asset.status !== "complete") throw new Error(asset.error ?? "The video is still processing — try again in a moment");
-    await store.publishUpload(assetId);
-    await store.createClip({
-      // Only fields the Clip model has — matchNo is already encoded in boutId.
-      bashoId: bout.bashoId,
-      day: bout.day,
-      eastId: bout.eastId,
-      westId: bout.westId,
-      boutId: String(form.get("boutId")),
-      title: String(form.get("title") ?? "").trim() || `${form.get("eastShikona")} vs ${form.get("westShikona")}`,
+    await createUploadedClip({
+      boutId: String(form.get("boutId") ?? ""),
+      assetId: String(form.get("assetId") ?? ""),
+      title: String(form.get("title") ?? ""),
       eastShikona: String(form.get("eastShikona") ?? ""),
       westShikona: String(form.get("westShikona") ?? ""),
-      source: "upload",
-      videoUrl: asset.url,
-      remarks: String(form.get("remarks") ?? "").trim() || undefined,
+      remarks: String(form.get("remarks") ?? ""),
     });
     updateTag(TAGS.clips);
     return { ok: true };

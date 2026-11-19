@@ -10,15 +10,27 @@ cd recorder
 npm install
 ```
 
-## Step 1: live clips to a local folder (no upload yet)
+## Live: watch, clip and upload every bout
 
 ```bash
-npm run watch -- https://www.twitch.tv/leodickinsonsumo
+npm run dev                                                    # repo root: the app the worker uploads through
+npm run watch -- https://www.twitch.tv/leodsumo --keep --minutes 240   # recorder/
 ```
 
-Watches the stream and saves each bout as soon as it ends to `recorder/clips/<date>/`
-(`001-<result time>-<winner side>.mp4`), with every clip's times in `clips.jsonl`. Nothing is uploaded.
-Ctrl+C stops (the bout in progress is still cut if its result was seen).
+Watches the stream, cuts each bout as soon as it ends, and uploads it to the app exactly like "Upload clip" on
+the bout page: the video goes to Hygraph as `Kyushu Basho 2026 Day 13: A vs B.mp4` and is saved as the bout's
+clip (remarks "Auto clip"). Every clip is also kept in `recorder/clips/<date>/` (`001-<result time>-<winner
+side>.mp4`), and `clips.jsonl` records each clip's times and its upload result.
+
+- **Bout matching (live)**: today's basho/day comes from the Sumo API; it starts at the first bout without a
+  result. Each clip goes to the next bout whose official winner side matches the side the graphic highlighted,
+  waiting up to 20 min for the result to appear. Walkovers (fusen) are skipped; bouts whose result was already
+  in more than 45 s before the clip's signal are skipped as missed bouts; a rematch reuses the previous bout.
+  Anything that doesn't fit is logged "no bout matches" and kept locally only.
+- **Start it just before Juryo** (~1:20pm SGT). The torikumi only has Juryo + Makuuchi, so a lower-division bout
+  shown before Juryo could be matched to a Juryo bout.
+- Not a basho day, app unreachable, or `--no-upload`: clips are only saved locally.
+- Ctrl+C stops (the bout in progress is still cut and uploaded if its result was seen).
 
 | Option | |
 |---|---|
@@ -26,6 +38,29 @@ Ctrl+C stops (the bout in progress is still cut if its result was seen).
 | `--minutes N` | Stop after N minutes |
 | `--keep` | Also keep the full recording (2 s pieces in `.pieces-<time>/`) for re-running `replay` later |
 | (a video file instead of a URL) | Plays the file in real time as if it were live, for testing; add `--fast` to go as fast as possible |
+| `--basho YYYYMM --day N --from <rikishi>` | Re-run or recording: match against that past day, starting at that rikishi's bout |
+| `--no-upload` | Only save clips locally |
+| `--match-only` | Match each clip and log the bout it would go to, without uploading |
+
+## Step 2: upload a clip to its bout (manual, for practice)
+
+```bash
+npm run upload -- clips/2026-11-20/001-000056-east.mp4 --basho 202611 --day 12 --rikishi Shonannoumi --winner east
+```
+
+Finds the bout in that day's torikumi (Sumo API) by either rikishi's English shikona, checks `--winner` (the
+side from `clips.jsonl`) against the official result and stops on a mismatch, then uploads through the app:
+`POST /api/recorder/upload` (presigned Hygraph target) → the file goes straight to Hygraph storage → poll
+`GET /api/recorder/upload?assetId=` → `POST /api/recorder/clip`. The clip is saved even if the bout already has
+one, titled like manual clips ("Kyushu Basho 2026 Day 12: A vs B") with remarks "Auto clip". `--note Rematch`
+adds to the remarks; `--dry` only finds and checks the bout.
+
+| Env | |
+|---|---|
+| `APP_URL` | The app to talk to. Default `http://localhost:3000` (run `npm run dev` in the repo root) |
+| `RECORDER_SECRET` | Must match the app's `RECORDER_SECRET`. Read from the repo root `.env.local` when not set |
+
+`GET /api/recorder/config` returns the run settings and the Twitch streams from the app's Streams list, in order.
 
 ## Calibration kit (local)
 
