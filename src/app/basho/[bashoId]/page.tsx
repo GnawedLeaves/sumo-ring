@@ -75,7 +75,8 @@ async function BashoDetail({ params, searchParams }: PageProps<"/basho/[bashoId]
         </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
           <Podium summary={summary} portraits={portraits} />
-          <aside className="h-fit rounded-card border border-line bg-surface p-5">
+          {/* Inset on mobile (mx-8) so a thumb at either edge scrolls the page, not the scrollable standings list. */}
+          <aside className="mx-8 h-fit rounded-card border border-line bg-surface p-5 lg:mx-0">
             {/* No prizes yet (basho still running): the live standings are more useful than an empty Awards panel. */}
             {(summary.specialPrizes ?? []).length === 0 && (summary.yusho ?? []).length === 0 ? (
               <Standings entries={banzuke ?? []} division={division} bashoId={bashoId} records={records} />
