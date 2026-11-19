@@ -1,0 +1,22 @@
+{
+  "name": "sumo-ring-recorder",
+  "private": true,
+  "type": "module",
+  "description": "Records the sumo Twitch stream and cuts each bout into a clip for Sumo Ring.",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "record": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/record.ts",
+    "replay": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/replay.ts",
+    "probe": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/probe.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}
