@@ -266,7 +266,7 @@ function BashoResults({ id, matches, jp, align }: { id: number; matches: Match[]
               <span
                 role="img"
                 aria-label={won ? "Win" : "Loss"}
-                className={`h-3 w-3 shrink-0 rounded-full border-2 ${won ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
+                className={`h-3 w-3 shrink-0 rounded-full border ${won ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
               />
             </Link>
           </li>
