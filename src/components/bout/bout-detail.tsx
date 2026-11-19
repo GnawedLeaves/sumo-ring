@@ -240,7 +240,7 @@ function HighestRank({ r }: { r: Rikishi | null }) {
 
 /**
  * One rikishi's decided bouts this basho, latest first: day, opponent (romaji + kanji) and a hoshi (star): white with
- * a dark outline for a win, solid for a loss. The right-hand column is mirrored so both dots sit by the centre line.
+ * a black outline for a win, black for a loss (green / red in dark mode, see globals.css). The right-hand column is mirrored so both dots sit by the centre line.
  */
 function BashoResults({ id, matches, jp, align }: { id: number; matches: Match[]; jp: Record<number, { jp?: string }>; align?: "right" }) {
   const rows = matches.filter((m) => m.winnerId).sort((a, c) => c.day - a.day);
@@ -266,7 +266,7 @@ function BashoResults({ id, matches, jp, align }: { id: number; matches: Match[]
               <span
                 role="img"
                 aria-label={won ? "Win" : "Loss"}
-                className={`h-3 w-3 shrink-0 rounded-full border-2 border-ink ${won ? "bg-surface" : "bg-ink"}`}
+                className={`h-3 w-3 shrink-0 rounded-full border-2 ${won ? "border-hoshi-win-line bg-hoshi-win" : "border-hoshi-loss bg-hoshi-loss"}`}
               />
             </Link>
           </li>

@@ -30,6 +30,10 @@
   --color-ink-soft: #2c2c2c;
   --color-brand: #160572;
   --color-hover: #fef9ee;
+  /* Win/loss dots (hoshi): white star with a black outline / black star; green / red in dark mode. */
+  --color-hoshi-win: #ffffff;
+  --color-hoshi-win-line: #000000;
+  --color-hoshi-loss: #000000;
 
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
@@ -70,6 +74,9 @@
     --color-ink-soft: #bdb6cf;
     --color-brand: #b3a8ff;
     --color-hover: #262040;
+    --color-hoshi-win: #4ade80;
+    --color-hoshi-win-line: #4ade80;
+    --color-hoshi-loss: #f87171;
     color-scheme: dark;
   }
 }
@@ -81,6 +88,9 @@
   --color-ink-soft: #bdb6cf;
   --color-brand: #b3a8ff;
   --color-hover: #262040;
+  --color-hoshi-win: #4ade80;
+  --color-hoshi-win-line: #4ade80;
+  --color-hoshi-loss: #f87171;
   color-scheme: dark;
 }
 
