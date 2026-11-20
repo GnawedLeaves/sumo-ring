@@ -26,6 +26,13 @@ export const WINDOW = {
   fallbackSec: 25,
   /** A result needs a tachiai at most this long before it (longest bouts are ~4 min, very rare). */
   maxBoutSec: 240,
+  /**
+   * A second result this soon after the previous one is the same bout again, not a new bout: a mono-ii (the judges
+   * confer, 協議中, then the graphic shows the result again) or a replay with the red graphic. Real bouts on Kyushu
+   * 2026 day 13 were 3.3-6 min apart; the mono-ii repeat came 88 s after the first result and became a second
+   * clip, which shifted every later clip one bout off.
+   */
+  minResultGapSec: 150,
 } as const;
 
 export type Side = "east" | "west";
@@ -89,7 +96,9 @@ export type ClipPlan = {
   startT: number;
   stopT: number;
   /** "Rematch" for the second clip after a yellow; "fallback" when no tachiai was found. */
-  note?: "Rematch" | "fallback";
+  /** "Repeat": a second result soon after the previous one, with a fresh tachiai between (maybe a rematch, maybe a
+   * replay): cut but only kept locally. */
+  note?: "Rematch" | "fallback" | "Repeat";
   kind: "red" | "yellow";
 };
 
@@ -118,13 +127,17 @@ export function planClips(events: EndEvent[], loud: Loud[]): ClipPlan[] {
 
 /**
  * Plans the clip for one end event, given the event before it (the tachiai can't be before that one).
- * Returns null when the event only confirms the previous (yellow) clip — see planClips.
+ * Returns null when the event only confirms the previous clip (after a yellow, or a repeat within minResultGapSec
+ * without a new tachiai) — see planClips.
  * `loud` must cover [ev.t - maxBoutSec, ev.t]; the live watcher keeps a rolling window of it.
  */
 export function planOne(ev: EndEvent, prev: EndEvent | null, loud: Loud[]): ClipPlan | null {
   const from = Math.max(prev ? prev.t : -Infinity, ev.t - WINDOW.maxBoutSec);
   const tachiai = findTachiai(loud, ev.t, from);
   if (ev.followsYellow && tachiai === null) return null;
+  // Same bout again (mono-ii / replay): no clip, unless the audio shows a fresh tachiai since the previous result.
+  const repeat = prev !== null && !ev.followsYellow && ev.t - prev.t < WINDOW.minResultGapSec;
+  if (repeat && tachiai === null) return null;
   return {
     endT: ev.t,
     kind: ev.kind,
@@ -132,6 +145,6 @@ export function planOne(ev: EndEvent, prev: EndEvent | null, loud: Loud[]): Clip
     tachiaiT: tachiai,
     startT: Math.max(0, tachiai === null ? ev.t - WINDOW.fallbackSec : tachiai - WINDOW.beforeSec),
     stopT: ev.t + WINDOW.afterSec,
-    note: ev.followsYellow ? "Rematch" : tachiai === null ? "fallback" : undefined,
+    note: ev.followsYellow ? "Rematch" : repeat ? "Repeat" : tachiai === null ? "fallback" : undefined,
   };
 }

@@ -38,6 +38,34 @@ const fast = args.includes("--fast");
 /** Match each clip to its bout and log it, but don't upload (for checking the matching). */
 const matchOnly = args.includes("--match-only");
 
+// One live watcher at a time. Two running together (Kyushu 2026 day 13: an old run kept going after a new one was
+// started) both upload every bout, and the older one's queue put leftover clips on the wrong bouts.
+const lockFile = path.resolve(import.meta.dirname, "..", ".watch.lock");
+if (!isFile) {
+  const other = existsSync(lockFile) ? Number(readFileSync(lockFile, "utf8")) : 0;
+  let alive = false;
+  try {
+    if (other && other !== process.pid) alive = process.kill(other, 0);
+  } catch {
+    alive = false; // no such process: a stale lock from a crash
+  }
+  if (alive) {
+    console.error(
+      `Another watcher is already running (process ${other}). Stop it first (Ctrl+C in its window, or ` +
+        `"Stop-Process -Id ${other}" in PowerShell), then start this one.`,
+    );
+    process.exit(1);
+  }
+  writeFileSync(lockFile, String(process.pid));
+  process.on("exit", () => {
+    try {
+      if (Number(readFileSync(lockFile, "utf8")) === process.pid) rmSync(lockFile);
+    } catch {
+      /* already gone */
+    }
+  });
+}
+
 const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Singapore" }); // YYYY-MM-DD
 const outDir = path.resolve(opt("out") ?? path.join("clips", day));
 const sessionId = new Date().toISOString().slice(11, 19).replace(/:/g, "");
@@ -195,6 +223,12 @@ let uploaded = 0;
 async function upload(file: string, plan: ClipPlan) {
   if (!matcher) return;
   const name = path.basename(file);
+  if (plan.note === "Repeat") {
+    // A second result right after the previous one, with a fresh tachiai: maybe a rematch, maybe a replay.
+    log(`  ${name}: repeat result within ${WINDOW.minResultGapSec} s of the previous one; kept locally, not uploaded`);
+    appendFileSync(logFile, `${JSON.stringify({ file: name, upload: "skipped-repeat" })}\n`);
+    return;
+  }
   try {
     const bout = await matcher.match(plan.winner, plan.note === "Rematch", signalWall.get(plan.endT));
     if (!bout) {
@@ -239,7 +273,7 @@ function flush(final = false) {
     const plan = planOne(ev, lastEvent, loud);
     lastEvent = ev;
     if (!plan) {
-      log("  red after yellow without a new tachiai: confirms the previous clip, no new clip");
+      log("  same bout again (after a yellow, or a mono-ii / replay within 150 s) with no new tachiai: no new clip");
       continue;
     }
     protectedFrom.push(plan.startT);
