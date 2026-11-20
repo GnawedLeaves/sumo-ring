@@ -33,7 +33,9 @@ export function WhitelistToggle({ rikishiId, name, initial }: { rikishiId: numbe
         disabled={pending}
         onClick={toggle}
         className={`inline-flex w-full items-center justify-between gap-2 border px-3 py-2 text-left text-body-sm font-bold transition-colors ${
-          on ? "border-brand bg-indigo-frame text-white" : "border-line bg-surface hover:bg-hover"
+          // brand/canvas swap per theme (indigo on cream in light, lavender on near-black in dark), so "on" stands
+          // out in both; a fixed indigo was almost the same colour as the dark-mode card background.
+          on ? "border-brand bg-brand text-canvas" : "border-line bg-surface hover:bg-hover"
         }`}
       >
         <span className="min-w-0 truncate">{name}</span>

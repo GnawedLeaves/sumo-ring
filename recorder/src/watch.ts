@@ -230,7 +230,7 @@ async function upload(file: string, plan: ClipPlan) {
     return;
   }
   try {
-    const bout = await matcher.match(plan.winner, plan.note === "Rematch", signalWall.get(plan.endT));
+    const bout = await matcher.match(plan.winner, plan.note === "Rematch", signalWall.get(plan.endT), () => [...signalWall.values()]);
     if (!bout) {
       log(`  ! ${name}: no bout matches (graphic: ${plan.winner ?? plan.kind} won; next is ${matcher.next ? `${matcher.next.eastShikona} vs ${matcher.next.westShikona}` : "none"}). Kept locally only.`);
       appendFileSync(logFile, `${JSON.stringify({ file: name, upload: "unmatched" })}\n`);

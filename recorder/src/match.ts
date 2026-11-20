@@ -74,6 +74,10 @@ const DECIDED_BEFORE_SLACK_MS = 45_000;
  * limit they took Makuuchi #1, #2… and every later clip was off by one.
  */
 const MAX_RESULT_LAG_MS = 5 * 60_000;
+/** Fastest the Sumo API has had a result after the graphic (measured 50 s), minus slack for the 30 s poll. */
+const MIN_RESULT_LAG_MS = 30_000;
+/** Same as WINDOW.minResultGapSec in bouts.ts: a result this soon after another is that bout again. */
+const REPEAT_GAP_MS = 150_000;
 
 /**
  * Assigns each clip, in the order they're cut, to a bout of the day. Keeps a cursor in the running order (Juryo
@@ -146,7 +150,13 @@ export class BoutMatcher {
    * are skipped as missed bouts; a result that only arrives more than MAX_RESULT_LAG_MS after it isn't this clip's.
    * Returns the bout, or null when nothing fits (logged by the caller as unmatched; the cursor doesn't move).
    */
-  async match(side: "east" | "west" | null, rematch = false, signalAt?: number): Promise<Bout | null> {
+  async match(
+    side: "east" | "west" | null,
+    rematch = false,
+    signalAt?: number,
+    /** Live: wall-clock times of every result the graphic showed (for the "a later result owns it" rule). */
+    allSignals: () => number[] = () => [],
+  ): Promise<Bout | null> {
     if (rematch && this.last) return this.last;
     const deadline = Math.min(
       Date.now() + this.waitMs,
@@ -159,6 +169,14 @@ export class BoutMatcher {
     const decidedTooLate = (b: Bout) => {
       const seen = this.decidedSeenAt.get(boutIdOf(b));
       return signalAt !== undefined && seen !== undefined && seen > signalAt + MAX_RESULT_LAG_MS;
+    };
+    // An official result belongs to the LAST result the graphic showed before it (results reach the API 50+ s
+    // after the bout). If another result was on screen after this clip's (and isn't just this bout repeated, see
+    // REPEAT_GAP_MS) but before this bout's official result, this clip was a replay of an earlier bout.
+    const ownedByLaterSignal = (b: Bout) => {
+      const seen = this.decidedSeenAt.get(boutIdOf(b));
+      if (signalAt === undefined || seen === undefined) return false;
+      return allSignals().some((w) => w > signalAt + REPEAT_GAP_MS && w < seen - MIN_RESULT_LAG_MS);
     };
     for (;;) {
       // Missed bouts (decided before this clip's signal) can never match: move past them for good.
@@ -175,7 +193,7 @@ export class BoutMatcher {
         }
         // Its result came long after this signal: this clip isn't a real bout (highlights, replay). Leave the
         // cursor where it is for the next clip.
-        if (decidedTooLate(b)) return null;
+        if (decidedTooLate(b) || ownedByLaterSignal(b)) return null;
         if (side === null || w === side) {
           this.cursor = i + 1;
           this.last = b;

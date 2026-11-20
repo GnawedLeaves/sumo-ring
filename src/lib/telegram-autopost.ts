@@ -50,7 +50,8 @@ async function telegramUpload(method: string, form: FormData) {
 
 /** Sends the clip as a video: by URL when Telegram can fetch it (≤ 20 MB MP4), uploaded when ≤ 50 MB, else a link. */
 async function sendClip(chat: string, clip: Clip): Promise<number> {
-  const caption = clipCaption(clip);
+  // "Kyushu Basho 2026 Day 12: Onosato vs Kirishima\n\nFull details: https://…/bout/<id>"
+  const caption = `${clipCaption(clip)}\n\nFull details: ${siteUrl()}/bout/${clip.boutId}`;
   const form = new FormData();
   form.append("chat_id", chat);
   form.append("caption", caption);
@@ -72,7 +73,7 @@ async function sendClip(chat: string, clip: Clip): Promise<number> {
   // Too big for a bot, not an MP4, or not served yet: post the title with a link to the bout page.
   const text = new FormData();
   text.append("chat_id", chat);
-  text.append("text", `${caption}\n${siteUrl()}/bout/${clip.boutId}`);
+  text.append("text", caption);
   return (await telegramUpload("sendMessage", text)).message_id;
 }
 

@@ -43,12 +43,14 @@ async function Whitelist() {
   const on = new Set(whitelist);
   const sekitori = index.filter((r) => (TIERS as readonly string[]).includes(r.tier));
   const channel = channelId();
+  const selected = sekitori.filter((r) => on.has(r.id));
 
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3 text-body-sm">
         <span>
-          <strong>{sekitori.filter((r) => on.has(r.id)).length}</strong> wrestler(s) on the whitelist
+          <strong>{selected.length}</strong> wrestler(s) on the whitelist
+          {selected.length > 0 && <span className="text-ink-soft">: {selected.map((r) => r.en).join(", ")}</span>}
         </span>
         {autoPostConfigured() ? (
           <span className="text-ink-soft">Posting to {channel}</span>

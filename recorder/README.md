@@ -10,6 +10,24 @@ cd recorder
 npm install
 ```
 
+## Unattended: start it in the morning, leave it all day
+
+```bash
+npm run dev      # repo root, own window: the app the clips upload through
+npm run daily    # recorder/, own window
+```
+
+`daily` waits until **13:20 SGT** on basho days, runs `watch` on https://www.twitch.tv/leodsumo until **17:20 SGT**
+(restarting it a minute later if the stream drops, isn't live yet, or it crashes), then waits for the next day.
+Non-basho days are skipped. Options: another stream URL, `--start HH:MM` / `--stop HH:MM` (Singapore time),
+`--keep` (keep the full recording, ~2 GB/hour). Don't run `watch` yourself at the same time: only one watcher can run
+(`.watch.lock`), so the daily one would keep waiting.
+
+- Keep the PC awake while plugged in (Windows: Settings → System → Power → "When plugged in, put my device to
+  sleep after" → Never) and both windows open. A Windows Update restart stops everything.
+- If the app isn't reachable when a watcher starts, `daily` says so; clips are still saved in `clips/<date>/` and
+  can be uploaded later with `npm run upload` (below).
+
 ## Live: watch, clip and upload every bout
 
 ```bash
