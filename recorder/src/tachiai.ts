@@ -9,7 +9,7 @@ export type Loud = { t: number; rms: number; voice: number };
 
 export const TACHIAI = {
   /** How far back from the result to look. */
-  maxLookbackSec: 180,
+  maxLookbackSec: 240,
   /**
    * A "quiet stretch" must last at least this long. Real crouch hushes measured 0.75-1.5 s (Kyushu 2026 day 11 +
    * day 12 re-run); a mid-bout stalemate lull reached 0.5 s, which 0.5 let through. Was 0.5 (1.5 missed a short
@@ -28,6 +28,14 @@ export const TACHIAI = {
   /** Onset = first window at least this share of the loud level, right after the quiet. */
   onsetRatio: 0.3,
 } as const;
+
+/**
+ * Known limit, mizu-iri (water break): the gyoji stops a very long bout, re-grips the wrestlers in silence, then
+ * restarts it; that hush + roar is the last one before the result, so the clip starts at the restart (Kyushu 2026
+ * day 13, Juryo #3). A "was a bout already roaring before this hush?" check fixed that bout but was tried and
+ * removed the same day: the crowd's cheers for popular wrestlers during shikiri look the same (Juryo #9, #10:
+ * clips started 66-76 s early, in the salt throwing). Water breaks are rare; re-cut those by hand from --keep.
+ */
 
 /**
  * Returns the tachiai time (seconds, same clock as `loud`) before `beforeT`, or null when there's no clear quiet →

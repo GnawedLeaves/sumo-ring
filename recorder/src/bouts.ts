@@ -25,7 +25,7 @@ export const WINDOW = {
    * length). The graphic lags the real end by ~5 s, so this still covers ~20 s of bout + the run-up. Was 45 s. */
   fallbackSec: 25,
   /** A result needs a tachiai at most this long before it (longest bouts are ~4 min, very rare). */
-  maxBoutSec: 180,
+  maxBoutSec: 240,
 } as const;
 
 export type Side = "east" | "west";
