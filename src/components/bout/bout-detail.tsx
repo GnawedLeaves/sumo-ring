@@ -11,8 +11,24 @@ import { ShareButton } from "@/components/share-button";
 import { ShareVideoButton } from "@/components/bout/share-video-button";
 import { pairTones, toneClass } from "@/lib/rikishi-color";
 import { getClips, getPortraitMap, getStarredBouts } from "@/lib/content";
-import { ageFrom, boutId as boutIdOf, parseBoutId, pct, record, shikonaOnly, yyyymm } from "@/lib/format";
-import { getBanzuke, getBashoRecords, getHeadToHead, getRikishi, getRikishiMatches, getRikishiProfile, getRikishiStats } from "@/lib/sumo-data";
+import {
+  ageFrom,
+  boutId as boutIdOf,
+  parseBoutId,
+  pct,
+  record,
+  shikonaOnly,
+  yyyymm,
+} from "@/lib/format";
+import {
+  getBanzuke,
+  getBashoRecords,
+  getHeadToHead,
+  getRikishi,
+  getRikishiMatches,
+  getRikishiProfile,
+  getRikishiStats,
+} from "@/lib/sumo-data";
 import type { BanzukeEntry, Match, RankChange, Rikishi } from "@/lib/sumo-api";
 import { Romaji } from "@/components/jp";
 
@@ -24,12 +40,30 @@ type Props = {
   compact?: boolean;
 };
 
-export async function BoutDetail({ boutId, live = false, compact = false }: Props) {
+export async function BoutDetail({
+  boutId,
+  live = false,
+  compact = false,
+}: Props) {
   const b = parseBoutId(boutId);
   if (!b) return <p className="text-body-sm">Unknown bout.</p>;
   const freshness = live ? "live" : "settled";
 
-  const [eastBasho, westBasho, east, west, eastStats, westStats, eastProfile, westProfile, h2h, portraits, bashoRecords, makuuchi, juryo] = await Promise.all([
+  const [
+    eastBasho,
+    westBasho,
+    east,
+    west,
+    eastStats,
+    westStats,
+    eastProfile,
+    westProfile,
+    h2h,
+    portraits,
+    bashoRecords,
+    makuuchi,
+    juryo,
+  ] = await Promise.all([
     getRikishiMatches(b.eastId, b.bashoId, freshness),
     getRikishiMatches(b.westId, b.bashoId, freshness),
     getRikishi(b.eastId),
@@ -45,22 +79,46 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
     getBanzuke(b.bashoId, "Makuuchi", freshness),
     getBanzuke(b.bashoId, "Juryo", freshness),
   ]);
-  const banzukeOf = (id: number) => [...(makuuchi ?? []), ...(juryo ?? [])].find((r) => r.rikishiID === id);
+  const banzukeOf = (id: number) =>
+    [...(makuuchi ?? []), ...(juryo ?? [])].find((r) => r.rikishiID === id);
   const eastEntry = banzukeOf(b.eastId);
   const westEntry = banzukeOf(b.westId);
   const eastResults = bashoResults(b.eastId, eastBasho, eastEntry);
   const westResults = bashoResults(b.westId, westBasho, westEntry);
 
-  const bout = eastBasho.find((m) => m.day === b.day && (m.westId === b.westId || m.eastId === b.westId));
+  const bout = eastBasho.find(
+    (m) => m.day === b.day && (m.westId === b.westId || m.eastId === b.westId),
+  );
   const recordTo = (matches: Match[], id: number) => {
-    const upto = matches.filter((m) => m.winnerId && (m.day < b.day || (bout?.winnerId && m.day === b.day)));
+    const upto = matches.filter(
+      (m) =>
+        m.winnerId && (m.day < b.day || (bout?.winnerId && m.day === b.day)),
+    );
     const w = upto.filter((m) => m.winnerId === id).length;
     return record(w, upto.length - w);
   };
 
   const sides = [
-    { id: b.eastId, side: "East", r: east, stats: eastStats, profile: eastProfile, rank: bout?.eastRank ?? east?.currentRank, rec: recordTo(eastBasho, b.eastId), h2hWins: h2h?.rikishiWins ?? 0 },
-    { id: b.westId, side: "West", r: west, stats: westStats, profile: westProfile, rank: bout?.westRank ?? west?.currentRank, rec: recordTo(westBasho, b.westId), h2hWins: h2h?.opponentWins ?? 0 },
+    {
+      id: b.eastId,
+      side: "East",
+      r: east,
+      stats: eastStats,
+      profile: eastProfile,
+      rank: bout?.eastRank ?? east?.currentRank,
+      rec: recordTo(eastBasho, b.eastId),
+      h2hWins: h2h?.rikishiWins ?? 0,
+    },
+    {
+      id: b.westId,
+      side: "West",
+      r: west,
+      stats: westStats,
+      profile: westProfile,
+      rank: bout?.westRank ?? west?.currentRank,
+      rec: recordTo(westBasho, b.westId),
+      h2hWins: h2h?.opponentWins ?? 0,
+    },
   ];
   const [e, w] = sides;
   const h2hTotal = e.h2hWins + w.h2hWins;
@@ -68,8 +126,15 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
   const [eastTone, westTone] = pairTones(b.eastId, b.westId);
   const tones = [eastTone, westTone];
   // Previous meetings: exclude this bout itself so "history" means before today.
-  const previous = (h2h?.matches ?? []).filter((m) => !(m.bashoId === b.bashoId && m.day === b.day));
-  const title = boutTitle(b.bashoId, b.day, e.r?.shikonaEn ?? bout?.eastShikona ?? "East", w.r?.shikonaEn ?? bout?.westShikona ?? "West");
+  const previous = (h2h?.matches ?? []).filter(
+    (m) => !(m.bashoId === b.bashoId && m.day === b.day),
+  );
+  const title = boutTitle(
+    b.bashoId,
+    b.day,
+    e.r?.shikonaEn ?? bout?.eastShikona ?? "East",
+    w.r?.shikonaEn ?? bout?.westShikona ?? "West",
+  );
   // Deep link to this bout inside its basho's day-by-day page (works for friends, during and after the basho).
   const sharePath = `/basho/${b.bashoId}?${new URLSearchParams({ day: String(b.day), div: bout?.division ?? "Makuuchi", bout: boutId })}`;
 
@@ -79,14 +144,24 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         <p className="flex flex-wrap items-center gap-x-2 text-caption font-bold uppercase tracking-wide text-ink-soft">
           <span>
             {bashoName(b.bashoId)} · Day {b.day}
-            {bout ? <> · <Romaji text={bout.division} kind="division" /></> : ""}
+            {bout ? (
+              <>
+                {" "}
+                · <Romaji text={bout.division} kind="division" />
+              </>
+            ) : (
+              ""
+            )}
           </span>
           <CopyButton text={title} label="Copy bout title" />
         </p>
         {!compact && (
           <span className="flex items-center gap-4">
             <ShareButton path={sharePath} title={title} />
-            <Link href={`/bout/${boutId}`} className="link-accent border-electric-teal text-body-sm">
+            <Link
+              href={`/bout/${boutId}`}
+              className="link-accent border-electric-teal text-body-sm"
+            >
               Open bout page
             </Link>
           </span>
@@ -100,71 +175,132 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
 
       {/* Matchup */}
       {/* minmax(0,1fr) lets each side shrink below its content width so long shikona wrap instead of spilling out */}
-      <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${compact ? "gap-2" : "gap-4"}`}>
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${compact ? "gap-2" : "gap-4"}`}
+      >
         {sides.map((s, i) => {
           const won = bout?.winnerId === s.id;
           const decided = Boolean(bout?.winnerId);
           return (
-            <div key={s.id} className={`flex min-w-0 flex-col gap-1.5 ${i === 0 ? "items-start" : "col-start-3 items-end text-right"}`}>
-              <Portrait id={s.id} en={s.r?.shikonaEn ?? ""} jp={s.r?.shikonaJp} src={portraits[s.id]} size={compact ? "sm" : "lg"} tone={tones[i]} />
+            <div
+              key={s.id}
+              className={`flex min-w-0 flex-col gap-1.5 ${i === 0 ? "items-start" : "col-start-3 items-end text-right"}`}
+            >
+              <Portrait
+                id={s.id}
+                en={s.r?.shikonaEn ?? ""}
+                jp={s.r?.shikonaJp}
+                src={portraits[s.id]}
+                size={compact ? "sm" : "lg"}
+                tone={tones[i]}
+              />
               <Link
                 href={`/rikishi/${s.id}`}
                 className={`max-w-full break-words font-display font-bold leading-tight tracking-tight text-brand hover:underline ${
-                  compact ? "text-body" : "text-subheading md:text-heading md:leading-none"
+                  compact
+                    ? "text-body"
+                    : "text-subheading md:text-heading md:leading-none"
                 }`}
               >
-                {s.r?.shikonaEn ?? (i === 0 ? bout?.eastShikona : bout?.westShikona)}
+                {s.r?.shikonaEn ??
+                  (i === 0 ? bout?.eastShikona : bout?.westShikona)}
               </Link>
-              <span className="font-jp text-body-sm">{shikonaOnly(s.r?.shikonaJp)}</span>
-              <span className="text-caption text-ink-soft"><Romaji text={s.rank} kind="rank" /></span>
+              <span className="font-jp text-body-sm">
+                {shikonaOnly(s.r?.shikonaJp)}
+              </span>
+              <span className="text-caption text-ink-soft">
+                <Romaji text={s.rank} kind="rank" />
+              </span>
               <span className="text-body-sm">
                 Basho <strong>{s.rec}</strong>
               </span>
               {decided && (
-                <span className={`badge max-w-full break-words ${won ? "" : "bg-surface! text-ink! border border-line"}`}>
-                  {won ? <>WIN · <Romaji text={bout?.kimarite} kind="kimarite" /></> : "LOSS"}
+                <span
+                  className={`badge max-w-full break-words ${won ? "" : "bg-surface! text-ink! border border-line"}`}
+                >
+                  {won ? (
+                    <>
+                      WIN · <Romaji text={bout?.kimarite} kind="kimarite" />
+                    </>
+                  ) : (
+                    "LOSS"
+                  )}
                 </span>
               )}
             </div>
           );
         })}
-        <span className={`col-start-2 row-start-1 self-center font-display italic text-brand ${compact ? "text-subheading" : "text-heading"}`}>vs</span>
+        <span
+          className={`col-start-2 row-start-1 self-center font-display italic text-brand ${compact ? "text-subheading" : "text-heading"}`}
+        >
+          vs
+        </span>
       </div>
 
       {/* Head to head */}
       <section className="flex flex-col gap-3">
-        <h3 className="font-display text-subheading text-brand">Head-to-head</h3>
+        <h3 className="font-display text-subheading text-brand">
+          Head-to-head
+        </h3>
         {h2hTotal === 0 ? (
           <p className="text-body-sm">First meeting.</p>
         ) : (
           <>
             <div className="flex items-baseline justify-between font-display text-heading font-bold">
               <span className="flex items-center gap-2">
-                <span aria-hidden className={`h-3 w-3 ${toneClass(eastTone)}`} />
+                <span
+                  aria-hidden
+                  className={`h-3 w-3 ${toneClass(eastTone)}`}
+                />
                 {e.h2hWins}
               </span>
-              <span className="text-caption font-sans font-normal text-ink-soft">{h2hTotal} bouts</span>
+              <span className="text-caption font-sans font-normal text-ink-soft">
+                {h2hTotal} bouts
+              </span>
               <span className="flex items-center gap-2">
                 {w.h2hWins}
-                <span aria-hidden className={`h-3 w-3 ${toneClass(westTone)}`} />
+                <span
+                  aria-hidden
+                  className={`h-3 w-3 ${toneClass(westTone)}`}
+                />
               </span>
             </div>
             <div className="flex h-3 border border-line" aria-hidden>
-              <div className={toneClass(eastTone)} style={{ width: `${(e.h2hWins / h2hTotal) * 100}%` }} />
-              <div className={toneClass(westTone)} style={{ width: `${(w.h2hWins / h2hTotal) * 100}%` }} />
+              <div
+                className={toneClass(eastTone)}
+                style={{ width: `${(e.h2hWins / h2hTotal) * 100}%` }}
+              />
+              <div
+                className={toneClass(westTone)}
+                style={{ width: `${(w.h2hWins / h2hTotal) * 100}%` }}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4 break-words text-body-sm">
-              <KimariteList who={<RikishiName en={e.r?.shikonaEn ?? "East"} jp={e.r?.shikonaJp} />} rows={Object.entries(h2h?.kimariteWins ?? {})} />
-              <KimariteList who={<RikishiName en={w.r?.shikonaEn ?? "West"} jp={w.r?.shikonaJp} />} rows={Object.entries(h2h?.kimariteLosses ?? {})} align="right" />
+              <KimariteList
+                who={
+                  <RikishiName
+                    en={e.r?.shikonaEn ?? "East"}
+                    jp={e.r?.shikonaJp}
+                  />
+                }
+                rows={Object.entries(h2h?.kimariteWins ?? {})}
+              />
+              <KimariteList
+                who={
+                  <RikishiName
+                    en={w.r?.shikonaEn ?? "West"}
+                    jp={w.r?.shikonaJp}
+                  />
+                }
+                rows={Object.entries(h2h?.kimariteLosses ?? {})}
+                align="right"
+              />
             </div>
           </>
         )}
       </section>
 
       {/* Admin: upload / delete clips and star the bout. Above the stats so it is reachable without scrolling far. */}
-      <Suspense fallback={null}>
-        <BoutClipAdmin boutId={boutId} eastShikona={e.r?.shikonaEn ?? ""} westShikona={w.r?.shikonaEn ?? ""} defaultTitle={title} />
-      </Suspense>
 
       {/* Stats */}
       <section className="flex flex-col gap-3">
@@ -172,21 +308,81 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
         <table className="w-full table-fixed border-collapse break-words text-body-sm">
           <tbody>
             {[
-              ["Stable", <Romaji key="e" text={e.r?.heya} kind="heya" />, <Romaji key="w" text={w.r?.heya} kind="heya" />],
+              [
+                "Stable",
+                <Romaji key="e" text={e.r?.heya} kind="heya" />,
+                <Romaji key="w" text={w.r?.heya} kind="heya" />,
+              ],
               ["Age", ageFrom(e.r?.birthDate), ageFrom(w.r?.birthDate)],
-              ["Height", e.r?.height && `${e.r.height} cm`, w.r?.height && `${w.r.height} cm`],
-              ["Weight", e.r?.weight && `${e.r.weight} kg`, w.r?.weight && `${w.r.weight} kg`],
-              ["Career", e.stats && record(e.stats.totalWins, e.stats.totalLosses), w.stats && record(w.stats.totalWins, w.stats.totalLosses)],
-              ["Win rate", e.stats && pct(e.stats.totalWins, e.stats.totalWins + e.stats.totalLosses, 2), w.stats && pct(w.stats.totalWins, w.stats.totalWins + w.stats.totalLosses, 2)],
-              ["Makuuchi yūshō", e.stats?.yushoByDivision?.Makuuchi ?? 0, w.stats?.yushoByDivision?.Makuuchi ?? 0],
-              ["Highest rank", <HighestRank key="e" r={e.r} />, <HighestRank key="w" r={w.r} />],
-              ["Top kimarite", <Romaji key="e" text={e.profile.kimariteWins[0]?.[0]} kind="kimarite" />, <Romaji key="w" text={w.profile.kimariteWins[0]?.[0]} kind="kimarite" />],
+              [
+                "Height",
+                e.r?.height && `${e.r.height} cm`,
+                w.r?.height && `${w.r.height} cm`,
+              ],
+              [
+                "Weight",
+                e.r?.weight && `${e.r.weight} kg`,
+                w.r?.weight && `${w.r.weight} kg`,
+              ],
+              [
+                "Career",
+                e.stats && record(e.stats.totalWins, e.stats.totalLosses),
+                w.stats && record(w.stats.totalWins, w.stats.totalLosses),
+              ],
+              [
+                "Win rate",
+                e.stats &&
+                  pct(
+                    e.stats.totalWins,
+                    e.stats.totalWins + e.stats.totalLosses,
+                    2,
+                  ),
+                w.stats &&
+                  pct(
+                    w.stats.totalWins,
+                    w.stats.totalWins + w.stats.totalLosses,
+                    2,
+                  ),
+              ],
+              [
+                "Makuuchi yūshō",
+                e.stats?.yushoByDivision?.Makuuchi ?? 0,
+                w.stats?.yushoByDivision?.Makuuchi ?? 0,
+              ],
+              [
+                "Highest rank",
+                <HighestRank key="e" r={e.r} />,
+                <HighestRank key="w" r={w.r} />,
+              ],
+              [
+                "Top kimarite",
+                <Romaji
+                  key="e"
+                  text={e.profile.kimariteWins[0]?.[0]}
+                  kind="kimarite"
+                />,
+                <Romaji
+                  key="w"
+                  text={w.profile.kimariteWins[0]?.[0]}
+                  kind="kimarite"
+                />,
+              ],
               // Shusshin: prefecture for Japanese-born rikishi, else country (e.g. "Mongolia, Ulaanbaatar").
-              ["Origin", e.r?.shusshin && <Romaji key="e" text={e.r.shusshin} kind="shusshin" />, w.r?.shusshin && <Romaji key="w" text={w.r.shusshin} kind="shusshin" />],
+              [
+                "Origin",
+                e.r?.shusshin && (
+                  <Romaji key="e" text={e.r.shusshin} kind="shusshin" />
+                ),
+                w.r?.shusshin && (
+                  <Romaji key="w" text={w.r.shusshin} kind="shusshin" />
+                ),
+              ],
             ].map(([label, a, c]) => (
               <tr key={String(label)} className="border-t border-line">
                 <td className="py-2 font-bold">{a ?? "—"}</td>
-                <td className="py-2 text-center text-caption uppercase text-ink-soft">{label}</td>
+                <td className="py-2 text-center text-caption uppercase text-ink-soft">
+                  {label}
+                </td>
                 <td className="py-2 text-right font-bold">{c ?? "—"}</td>
               </tr>
             ))}
@@ -197,10 +393,18 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {/* Each rikishi's results so far this basho, latest day first, mirrored like the matchup above */}
       {(eastResults.length > 0 || westResults.length > 0) && (
         <section className="flex flex-col gap-3">
-          <h3 className="font-display text-subheading text-brand">This basho</h3>
+          <h3 className="font-display text-subheading text-brand">
+            This basho
+          </h3>
           <BashoResultsTable
-            east={{ rows: eastResults, score: bashoScore(eastResults, eastEntry) }}
-            west={{ rows: westResults, score: bashoScore(westResults, westEntry) }}
+            east={{
+              rows: eastResults,
+              score: bashoScore(eastResults, eastEntry),
+            }}
+            west={{
+              rows: westResults,
+              score: bashoScore(westResults, westEntry),
+            }}
             jp={bashoRecords}
           />
         </section>
@@ -209,18 +413,35 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {/* Previous meetings */}
       {previous.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="font-display text-subheading text-brand">Previous meetings</h3>
+          <h3 className="font-display text-subheading text-brand">
+            Previous meetings
+          </h3>
           <ul className="divide-y divide-line border-y border-line text-body-sm">
             {previous.slice(0, compact ? 5 : 15).map((m) => (
-              <li key={`${m.bashoId}-${m.day}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 py-2 sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
+              <li
+                key={`${m.bashoId}-${m.day}`}
+                className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 py-2 sm:grid-cols-[6rem_minmax(0,1fr)_auto]"
+              >
                 <span className="text-ink-soft">
                   {yyyymm(m.bashoId)} · D{m.day}
                 </span>
                 <span className="min-w-0 break-words font-bold">
-                  <RikishiName en={m.winnerEn} jp={m.winnerJp || (m.winnerId === b.eastId ? e.r?.shikonaJp : w.r?.shikonaJp)} />
+                  <RikishiName
+                    en={m.winnerEn}
+                    jp={
+                      m.winnerJp ||
+                      (m.winnerId === b.eastId
+                        ? e.r?.shikonaJp
+                        : w.r?.shikonaJp)
+                    }
+                  />
                 </span>
                 {/* Wraps under the name on narrow widths and in the sidebar */}
-                <span className={`text-ink-soft ${compact ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1 sm:text-right"}`}><Romaji text={m.kimarite} kind="kimarite" /></span>
+                <span
+                  className={`text-ink-soft ${compact ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1 sm:text-right"}`}
+                >
+                  <Romaji text={m.kimarite} kind="kimarite" />
+                </span>
               </li>
             ))}
           </ul>
@@ -230,6 +451,14 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
       {/* Fan comments (Firestore). Not in the compact Streams sidebar — too narrow, and it's a live view. */}
       {!compact && <BoutComments boutId={boutId} title={title} />}
 
+      <Suspense fallback={null}>
+        <BoutClipAdmin
+          boutId={boutId}
+          eastShikona={e.r?.shikonaEn ?? ""}
+          westShikona={w.r?.shikonaEn ?? ""}
+          defaultTitle={title}
+        />
+      </Suspense>
     </article>
   );
 }
@@ -237,37 +466,66 @@ export async function BoutDetail({ boutId, live = false, compact = false }: Prop
 /** Career-best rank (lowest rankValue) and the basho it was first reached. */
 function HighestRank({ r }: { r: Rikishi | null }) {
   const best = (r?.rankHistory ?? []).reduce<RankChange | undefined>(
-    (acc, cur) => (!acc || cur.rankValue < acc.rankValue || (cur.rankValue === acc.rankValue && cur.bashoId < acc.bashoId) ? cur : acc),
+    (acc, cur) =>
+      !acc ||
+      cur.rankValue < acc.rankValue ||
+      (cur.rankValue === acc.rankValue && cur.bashoId < acc.bashoId)
+        ? cur
+        : acc,
     undefined,
   );
   if (!best) return "—";
   return (
     <>
       <Romaji text={best.rank} kind="rank" />
-      <span className="block text-caption font-normal text-ink-soft">{yyyymm(best.bashoId)}</span>
+      <span className="block text-caption font-normal text-ink-soft">
+        {yyyymm(best.bashoId)}
+      </span>
     </>
   );
 }
 
-type BashoResult = { day: number; result: "win" | "loss" | "rest"; opp?: { id: number; en: string }; match?: Match };
+type BashoResult = {
+  day: number;
+  result: "win" | "loss" | "rest";
+  opp?: { id: number; en: string };
+  match?: Match;
+};
 
 /**
  * One rikishi's results this basho, latest day first. A bout lost by default (fusen: they didn't turn up) and an
  * absent day (kyūjō, no bout scheduled, so only in the banzuke record) are both "rest".
  */
-function bashoResults(id: number, matches: Match[], entry?: BanzukeEntry): BashoResult[] {
+function bashoResults(
+  id: number,
+  matches: Match[],
+  entry?: BanzukeEntry,
+): BashoResult[] {
   const rows = new Map<number, BashoResult>();
   for (const m of matches) {
     if (!m.winnerId) continue; // not decided yet
-    const opp = m.eastId === id ? { id: m.westId, en: m.westShikona } : { id: m.eastId, en: m.eastShikona };
-    const result = m.winnerId === id ? "win" : m.kimarite === "fusen" ? "rest" : "loss";
+    const opp =
+      m.eastId === id
+        ? { id: m.westId, en: m.westShikona }
+        : { id: m.eastId, en: m.eastShikona };
+    const result =
+      m.winnerId === id ? "win" : m.kimarite === "fusen" ? "rest" : "loss";
     rows.set(m.day, { day: m.day, result, opp, match: m });
   }
   // The banzuke record has one entry per day (day 1 first).
   entry?.record?.forEach((r, i) => {
     const day = i + 1;
-    if ((r.result === "absent" || r.result === "fusen loss") && !rows.has(day)) {
-      rows.set(day, { day, result: "rest", opp: r.opponentID ? { id: r.opponentID, en: r.opponentShikonaEn } : undefined });
+    if (
+      (r.result === "absent" || r.result === "fusen loss") &&
+      !rows.has(day)
+    ) {
+      rows.set(day, {
+        day,
+        result: "rest",
+        opp: r.opponentID
+          ? { id: r.opponentID, en: r.opponentShikonaEn }
+          : undefined,
+      });
     }
   });
   return [...rows.values()].sort((a, c) => c.day - a.day);
@@ -277,24 +535,41 @@ type Score = { wins: number; losses: number; rest: number };
 
 /** Score so far: the official banzuke record, else counted from the rows. */
 function bashoScore(rows: BashoResult[], entry?: BanzukeEntry): Score {
-  if (entry) return { wins: entry.wins, losses: entry.losses, rest: entry.absences };
-  const n = (k: BashoResult["result"]) => rows.filter((x) => x.result === k).length;
+  if (entry)
+    return { wins: entry.wins, losses: entry.losses, rest: entry.absences };
+  const n = (k: BashoResult["result"]) =>
+    rows.filter((x) => x.result === k).length;
   return { wins: n("win"), losses: n("loss"), rest: n("rest") };
 }
 
 /** "6 wins 勝 6 losses 敗 2 rest 休" (rest only when there is any). Each part wraps as a whole. */
-function ScoreText({ score, right = false }: { score: Score; right?: boolean }) {
+function ScoreText({
+  score,
+  right = false,
+}: {
+  score: Score;
+  right?: boolean;
+}) {
   const parts: [number, string, string][] = [
     [score.wins, score.wins === 1 ? "win" : "wins", "勝"],
     [score.losses, score.losses === 1 ? "loss" : "losses", "敗"],
-    ...(score.rest ? [[score.rest, "rest", "休"] as [number, string, string]] : []),
+    ...(score.rest
+      ? [[score.rest, "rest", "休"] as [number, string, string]]
+      : []),
   ];
   return (
-    <p className={`flex flex-wrap gap-x-3 gap-y-0.5 pb-2 text-body-sm ${right ? "justify-end text-right" : ""}`}>
+    <p
+      className={`flex flex-wrap gap-x-3 gap-y-0.5 pb-2 text-body-sm ${right ? "justify-end text-right" : ""}`}
+    >
       {parts.map(([n, en, jp]) => (
         <span key={en} className="whitespace-nowrap">
-          <strong className="font-display text-subheading tabular-nums">{n}</strong> {en}
-          <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{jp}</span>
+          <strong className="font-display text-subheading tabular-nums">
+            {n}
+          </strong>{" "}
+          {en}
+          <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">
+            {jp}
+          </span>
         </span>
       ))}
     </p>
@@ -310,7 +585,15 @@ type Side = { rows: BashoResult[]; score: Score };
  * in dark mode, see globals.css), 休 for a rest day. The right-hand column is mirrored so the marks sit by the
  * centre line.
  */
-function BashoResultsTable({ east, west, jp }: { east: Side; west: Side; jp: Record<number, { jp?: string }> }) {
+function BashoResultsTable({
+  east,
+  west,
+  jp,
+}: {
+  east: Side;
+  west: Side;
+  jp: Record<number, { jp?: string }>;
+}) {
   const byDay = (rows: BashoResult[]) => new Map(rows.map((x) => [x.day, x]));
   const e = byDay(east.rows);
   const w = byDay(west.rows);
@@ -329,12 +612,25 @@ function BashoResultsTable({ east, west, jp }: { east: Side; west: Side; jp: Rec
   );
 }
 
-function ResultCell({ row, jp, right = false }: { row?: BashoResult; jp: Record<number, { jp?: string }>; right?: boolean }) {
+function ResultCell({
+  row,
+  jp,
+  right = false,
+}: {
+  row?: BashoResult;
+  jp: Record<number, { jp?: string }>;
+  right?: boolean;
+}) {
   const cellClass = `flex h-full min-w-0 items-center gap-2 border-t border-line py-2 ${right ? "flex-row-reverse text-right" : ""}`;
   if (!row) return <div className={cellClass} />;
   const { day, result, opp, match } = row;
   const kanji = opp && shikonaOnly(jp[opp.id]?.jp);
-  const what = result === "win" ? `won against ${opp?.en}` : result === "loss" ? `lost to ${opp?.en}` : "rested (kyūjō)";
+  const what =
+    result === "win"
+      ? `won against ${opp?.en}`
+      : result === "loss"
+        ? `lost to ${opp?.en}`
+        : "rested (kyūjō)";
   const title = `Day ${day}: ${what}${match?.kimarite && result !== "rest" ? ` (${match.kimarite})` : ""}`;
   const content = (
     <>
@@ -343,14 +639,25 @@ function ResultCell({ row, jp, right = false }: { row?: BashoResult; jp: Record<
         {opp ? (
           <>
             <span className="font-bold">{opp.en}</span>
-            {kanji && <span lang="ja" className="ml-1 font-jp text-[0.85em] text-ink-soft">{kanji}</span>}
+            {kanji && (
+              <span
+                lang="ja"
+                className="ml-1 font-jp text-[0.85em] text-ink-soft"
+              >
+                {kanji}
+              </span>
+            )}
           </>
         ) : (
           <span className="text-ink-soft">Absent</span>
         )}
       </span>
       {result === "rest" ? (
-        <span lang="ja" aria-label="Rest" className="w-3 shrink-0 text-center font-jp text-caption font-bold leading-none">
+        <span
+          lang="ja"
+          aria-label="Rest"
+          className="w-3 shrink-0 text-center font-jp text-caption font-bold leading-none"
+        >
           休
         </span>
       ) : (
@@ -363,7 +670,11 @@ function ResultCell({ row, jp, right = false }: { row?: BashoResult; jp: Record<
     </>
   );
   return match ? (
-    <Link href={`/bout/${boutIdOf(match)}`} title={title} className={`${cellClass} hover:bg-hover`}>
+    <Link
+      href={`/bout/${boutIdOf(match)}`}
+      title={title}
+      className={`${cellClass} hover:bg-hover`}
+    >
       {content}
     </Link>
   ) : (
@@ -373,7 +684,15 @@ function ResultCell({ row, jp, right = false }: { row?: BashoResult; jp: Record<
   );
 }
 
-function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [string, number][]; align?: "right" }) {
+function KimariteList({
+  who,
+  rows,
+  align,
+}: {
+  who: React.ReactNode;
+  rows: [string, number][];
+  align?: "right";
+}) {
   return (
     <div className={align === "right" ? "text-right" : ""}>
       <p className="text-caption text-ink-soft">
@@ -397,7 +716,13 @@ function KimariteList({ who, rows, align }: { who: React.ReactNode; rows: [strin
 }
 
 /** The bout's clips, shown at the top of the bout. Renders nothing when there are none. */
-async function BoutClipVideos({ boutId, title }: { boutId: string; title: string }) {
+async function BoutClipVideos({
+  boutId,
+  title,
+}: {
+  boutId: string;
+  title: string;
+}) {
   const clips = await getClips({ boutId });
   if (clips.length === 0) return null;
   return (
@@ -406,11 +731,20 @@ async function BoutClipVideos({ boutId, title }: { boutId: string; title: string
         // No title caption: the bout header above already names the match (the title stays on the player for screen
         // readers). Remarks (e.g. "Rematch") are shown, since they tell two clips of the same bout apart.
         <figure key={c.id} className="flex flex-col gap-1">
-          <VideoPlayer url={c.videoUrl} start={c.startSec} end={c.endSec} title={c.title} />
+          <VideoPlayer
+            url={c.videoUrl}
+            start={c.startSec}
+            end={c.endSec}
+            title={c.title}
+          />
           <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <span className="text-body-sm text-ink-soft">{c.remarks}</span>
             {/* Sends the video file itself (e.g. to a Telegram chat) with the bout title as the message. */}
-            <ShareVideoButton url={c.videoUrl} title={title} remarks={c.remarks} />
+            <ShareVideoButton
+              url={c.videoUrl}
+              title={title}
+              remarks={c.remarks}
+            />
           </figcaption>
         </figure>
       ))}
@@ -419,14 +753,26 @@ async function BoutClipVideos({ boutId, title }: { boutId: string; title: string
 }
 
 /** Admin-only clip upload / delete, shown just above the stats. (getClips is cached, so this reuses the same fetch.) */
-async function BoutClipAdmin(props: { boutId: string; eastShikona: string; westShikona: string; defaultTitle: string }) {
+async function BoutClipAdmin(props: {
+  boutId: string;
+  eastShikona: string;
+  westShikona: string;
+  defaultTitle: string;
+}) {
   const b = parseBoutId(props.boutId);
-  const [clips, starred] = await Promise.all([getClips({ boutId: props.boutId }), b ? getStarredBouts(b.bashoId) : ([] as string[])]);
+  const [clips, starred] = await Promise.all([
+    getClips({ boutId: props.boutId }),
+    b ? getStarredBouts(b.bashoId) : ([] as string[]),
+  ]);
   return (
     <ClipAdmin
       {...props}
       starred={starred.includes(props.boutId)}
-      clips={clips.map((c) => ({ id: c.id, title: c.title, remarks: c.remarks }))}
+      clips={clips.map((c) => ({
+        id: c.id,
+        title: c.title,
+        remarks: c.remarks,
+      }))}
     />
   );
 }

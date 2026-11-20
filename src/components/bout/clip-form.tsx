@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Star } from "lucide-react";
-import { createClipUpload, deleteClip, saveClip, setBoutStar } from "@/lib/actions";
+import {
+  createClipUpload,
+  deleteClip,
+  saveClip,
+  setBoutStar,
+} from "@/lib/actions";
 import { sendToStorage, waitUntilProcessed } from "@/lib/upload-client";
 
 type Props = {
@@ -16,7 +27,12 @@ type Props = {
   uploadsEnabled: boolean;
 };
 
-type Phase = { step: "idle" } | { step: "starting" } | { step: "uploading"; pct: number } | { step: "processing" } | { step: "saving" };
+type Phase =
+  | { step: "idle" }
+  | { step: "starting" }
+  | { step: "uploading"; pct: number }
+  | { step: "processing" }
+  | { step: "saving" };
 
 const input = "w-full border border-line bg-surface px-3 py-2 text-body-sm";
 // The native file input: a big "Choose file" pill, then the file name, in a bordered box so the two read as separate.
@@ -25,7 +41,15 @@ const fileInput =
   "file:mr-3 file:cursor-pointer file:rounded-pill file:border-0 file:bg-cobalt-stage file:px-6 file:py-3 file:font-bold file:text-white " +
   "hover:file:opacity-90 disabled:cursor-not-allowed disabled:file:opacity-60";
 
-export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starred, clips, uploadsEnabled }: Props) {
+export function ClipForm({
+  boutId,
+  eastShikona,
+  westShikona,
+  defaultTitle,
+  starred,
+  clips,
+  uploadsEnabled,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
@@ -42,7 +66,8 @@ export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starr
 
   // Opening the form scrolls the file picker into view so it can be tapped straight away.
   useEffect(() => {
-    if (open) fileRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (open)
+      fileRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [open]);
 
   function toggleStar() {
@@ -65,14 +90,20 @@ export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starr
     const form = new FormData(e.currentTarget);
     try {
       const file = form.get("file");
-      if (!(file instanceof File) || !file.size) throw new Error("Choose a video file");
-      if (!file.type.startsWith("video/")) throw new Error("That isn't a video file");
-      let assetId = uploaded.current?.file === file ? uploaded.current.assetId : null;
+      if (!(file instanceof File) || !file.size)
+        throw new Error("Choose a video file");
+      if (!file.type.startsWith("video/"))
+        throw new Error("That isn't a video file");
+      let assetId =
+        uploaded.current?.file === file ? uploaded.current.assetId : null;
       if (!assetId) {
         setPhase({ step: "uploading", pct: 0 });
         const target = await createClipUpload(file.name);
-        if (!target) throw new Error("Video uploads need Hygraph to be configured");
-        await sendToStorage(target, file, (pct) => setPhase({ step: "uploading", pct }));
+        if (!target)
+          throw new Error("Video uploads need Hygraph to be configured");
+        await sendToStorage(target, file, (pct) =>
+          setPhase({ step: "uploading", pct }),
+        );
         assetId = target.assetId;
         uploaded.current = { file, assetId };
       }
@@ -117,31 +148,54 @@ export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starr
             aria-pressed={isStarred}
             className={`btn-pill border border-line disabled:opacity-60 ${isStarred ? "bg-daffodil text-ink!" : "bg-surface text-ink!"}`}
           >
-            <Star aria-hidden className="h-4 w-4" fill={isStarred ? "currentColor" : "none"} />
+            <Star
+              aria-hidden
+              className="h-4 w-4"
+              fill={isStarred ? "currentColor" : "none"}
+            />
             {isStarred ? "Exciting" : "Mark exciting"}
           </button>
           {uploadsEnabled && (
-            <button type="button" disabled={busy} onClick={() => setOpen((o) => !o)} className="btn-pill bg-cobalt-stage disabled:opacity-60">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setOpen((o) => !o)}
+              className="btn-pill bg-cobalt-stage disabled:opacity-60"
+            >
               {open ? "Cancel" : "Add clip"}
             </button>
           )}
         </span>
       </div>
 
-      {!uploadsEnabled && <p className="text-body-sm">Clip uploads need Hygraph — set HYGRAPH_ENDPOINT and HYGRAPH_TOKEN.</p>}
+      {!uploadsEnabled && (
+        <p className="text-body-sm">
+          Clip uploads need Hygraph — set HYGRAPH_ENDPOINT and HYGRAPH_TOKEN.
+        </p>
+      )}
 
       {clips.length > 0 && (
         <ul className="text-body-sm">
           {clips.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-2 border-t border-line py-1">
+            <li
+              key={c.id}
+              className="flex items-center justify-between gap-2 border-t border-line py-1"
+            >
               <span className="min-w-0 break-words">
                 {c.title}
-                {c.remarks && <span className="block text-caption text-ink-soft">{c.remarks}</span>}
+                {c.remarks && (
+                  <span className="block text-caption text-ink-soft">
+                    {c.remarks}
+                  </span>
+                )}
               </span>
               <button
                 type="button"
                 className="shrink-0 text-crimson-spotlight underline"
-                onClick={() => confirm(`Delete clip "${c.title}"?`) && start(async () => void (await deleteClip(c.id)))}
+                onClick={() =>
+                  confirm(`Delete clip "${c.title}"?`) &&
+                  start(async () => void (await deleteClip(c.id)))
+                }
               >
                 {pending ? "…" : "Delete"}
               </button>
@@ -150,7 +204,9 @@ export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starr
         </ul>
       )}
 
-      {!open && error && <p className="text-body-sm text-crimson-spotlight">{error}</p>}
+      {!open && error && (
+        <p className="text-body-sm text-crimson-spotlight">{error}</p>
+      )}
 
       {open && uploadsEnabled && (
         <form onSubmit={submit} className="flex flex-col gap-3 text-body-sm">
@@ -159,25 +215,60 @@ export function ClipForm({ boutId, eastShikona, westShikona, defaultTitle, starr
           <input type="hidden" name="westShikona" value={westShikona} />
           <label className="flex flex-col gap-1">
             Video file
-            <input ref={fileRef} name="file" type="file" accept="video/*" required className={fileInput} disabled={busy} />
+            <input
+              ref={fileRef}
+              name="file"
+              type="file"
+              accept="video/*"
+              required
+              className={fileInput}
+              disabled={busy}
+            />
           </label>
           <label className="flex flex-col gap-1">
             Title
-            <input name="title" className={input} defaultValue={defaultTitle} disabled={busy} />
+            <input
+              name="title"
+              className={input}
+              defaultValue={defaultTitle}
+              disabled={busy}
+            />
           </label>
           <label className="flex flex-col gap-1">
             <span>
-              Remarks <span className="text-ink-soft">(optional — shown under the clip)</span>
+              Remarks{" "}
+              <span className="text-ink-soft">
+                (optional — shown under the clip)
+              </span>
             </span>
-            <input name="remarks" className={input} placeholder="e.g. Rematch (torinaoshi)" disabled={busy} />
+            <input
+              name="remarks"
+              className={input}
+              placeholder="e.g. Rematch (torinaoshi)"
+              disabled={busy}
+            />
           </label>
           {phase.step === "uploading" && (
-            <div className="h-2 border border-line" role="progressbar" aria-valuenow={phase.pct} aria-valuemin={0} aria-valuemax={100}>
-              <div className="h-full bg-tangerine-pop transition-[width]" style={{ width: `${phase.pct}%` }} />
+            <div
+              className="h-2 border border-line"
+              role="progressbar"
+              aria-valuenow={phase.pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full bg-tangerine-pop transition-[width]"
+                style={{ width: `${phase.pct}%` }}
+              />
             </div>
           )}
           {error && <p className="text-crimson-spotlight">{error}</p>}
-          <button type="submit" disabled={busy} aria-busy={busy} className="btn-pill self-start bg-tangerine-pop disabled:cursor-not-allowed disabled:opacity-60">
+          <button
+            type="submit"
+            disabled={busy}
+            aria-busy={busy}
+            className="btn-pill self-start bg-tangerine-pop disabled:cursor-not-allowed disabled:opacity-60"
+          >
             {label}
           </button>
         </form>
