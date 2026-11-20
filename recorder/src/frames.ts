@@ -1,0 +1,71 @@
+// Decodes a video (file, URL or HLS playlist) into small rgb24 frames of the graphic strip plus an audio
+// loudness track, using the ffmpeg binary from ffmpeg-static.
+import { spawn } from "node:child_process";
+import ffmpegPath from "ffmpeg-static";
+import { STRIP } from "./graphic.ts";
+
+export const FFMPEG = ffmpegPath as unknown as string;
+
+/**
+ * Audio settings for saved clips. The stream is quiet (mean ≈ -32 dB, the crouch hush ≈ -55 dB), so clips sounded
+ * silent on laptop speakers; loudnorm brings them to the usual web loudness (-16 LUFS, peaks ≤ -1.5 dB).
+ * loudnorm works at 192 kHz internally, hence the explicit -ar.
+ */
+export const CLIP_AUDIO = ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", "44100", "-c:a", "aac", "-b:a", "128k"];
+
+/** Yields [timeSec, frame] for the graphic strip at `fps`, scaled from a 1280x720 frame. */
+export async function* stripFrames(input: string, fps = 4, extraArgs: string[] = []): AsyncGenerator<[number, Buffer]> {
+  const size = STRIP.w * STRIP.h * 3;
+  const ff = spawn(FFMPEG, [
+    "-v", "error", ...extraArgs, "-i", input,
+    "-an",
+    "-vf", `fps=${fps},scale=1280:720,crop=${STRIP.w}:${STRIP.h}:${STRIP.x}:${STRIP.y}`,
+    "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1",
+  ]);
+  ff.stderr.on("data", (d) => process.stderr.write(d));
+  let pending = Buffer.alloc(0);
+  let n = 0;
+  for await (const chunk of ff.stdout) {
+    pending = Buffer.concat([pending, chunk as Buffer]);
+    while (pending.length >= size) {
+      yield [n++ / fps, pending.subarray(0, size)];
+      pending = pending.subarray(size);
+    }
+  }
+}
+
+/** Loudness per `stepMs` window: RMS (0-1) of the mono mix, and of a voice-band (300-3000 Hz) filtered copy. */
+export async function loudness(
+  input: string,
+  stepMs = 100,
+  extraArgs: string[] = [],
+  /** Skip the full-mix pass (the tachiai detector only uses the voice band): one ffmpeg run instead of two. */
+  { voiceOnly = false } = {},
+): Promise<{ t: number; rms: number; voice: number }[]> {
+  const rate = 16000;
+  const read = (filter: string) =>
+    new Promise<Float64Array>((resolve, reject) => {
+      const ff = spawn(FFMPEG, ["-v", "error", ...extraArgs, "-i", input, "-vn", "-ac", "1", "-ar", String(rate), "-af", filter, "-f", "s16le", "pipe:1"]);
+      const chunks: Buffer[] = [];
+      ff.stdout.on("data", (c: Buffer) => chunks.push(c));
+      ff.stderr.on("data", (d) => process.stderr.write(d));
+      ff.on("error", reject);
+      ff.on("close", () => {
+        const pcm = Buffer.concat(chunks);
+        const per = Math.round((rate * stepMs) / 1000);
+        const out = new Float64Array(Math.floor(pcm.length / 2 / per));
+        for (let w = 0; w < out.length; w++) {
+          let sq = 0;
+          for (let i = 0; i < per; i++) {
+            const s = pcm.readInt16LE((w * per + i) * 2) / 32768;
+            sq += s * s;
+          }
+          out[w] = Math.sqrt(sq / per);
+        }
+        resolve(out);
+      });
+    });
+  const voice = await read("highpass=f=300,lowpass=f=3000");
+  const all = voiceOnly ? null : await read("anull");
+  return Array.from(voice, (v, i) => ({ t: (i * stepMs) / 1000, rms: all?.[i] ?? 0, voice: v }));
+}

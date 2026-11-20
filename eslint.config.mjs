@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate Node package (stream recorder), with its own tsconfig.
+    "recorder/**",
   ]),
 ]);
 
