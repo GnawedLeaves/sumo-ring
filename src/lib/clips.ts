@@ -1,6 +1,8 @@
 import "server-only";
+import { after } from "next/server";
 import { store, type Clip } from "./content";
 import { parseBoutId } from "./format";
+import { autoPostClip } from "./telegram-autopost";
 
 export type UploadedClipInput = {
   boutId: string;
@@ -17,8 +19,9 @@ export type UploadedClipInput = {
  * the published Clip entry. Shared by the bout page's upload form (saveClip server action) and the auto-clipper
  * (/api/recorder/clip). Callers invalidate TAGS.clips themselves: updateTag in a Server Action, revalidateTag in a
  * Route Handler.
+ * `autoPost` (auto-clipper only): after the response, post it to the Telegram channel if a wrestler is whitelisted.
  */
-export async function createUploadedClip(input: UploadedClipInput): Promise<Clip> {
+export async function createUploadedClip(input: UploadedClipInput, opts: { autoPost?: boolean } = {}): Promise<Clip> {
   const bout = parseBoutId(input.boutId);
   if (!bout) throw new Error("Unknown bout");
   if (!input.assetId) throw new Error("Choose a video file to upload");
@@ -40,13 +43,7 @@ export async function createUploadedClip(input: UploadedClipInput): Promise<Clip
     videoUrl: asset.url!,
     remarks: input.remarks?.trim() || undefined,
   });
-  await afterClipSaved(clip);
+  if (opts.autoPost) after(() => autoPostClip(clip));
   return clip;
 }
 
-/**
- * Post-save hook. Future: auto-post clips of whitelisted wrestlers to the owner's Telegram channel. Nothing yet.
- */
-async function afterClipSaved(clip: Clip): Promise<void> {
-  void clip;
-}

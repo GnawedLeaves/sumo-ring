@@ -26,10 +26,14 @@ export async function tg<T = unknown>(method: string, body: Record<string, unkno
   return json.result as T;
 }
 
-/** "Kyushu Basho 2026 Day 9: Hoshoryu vs Onosato (Rematch)" */
+/**
+ * "Kyushu Basho 2026 Day 9: Hoshoryu vs Onosato (Rematch)". The auto-clipper's "Auto clipped" marker in remarks is
+ * for the app only, so it's left out ("Auto clipped · Rematch" -> "(Rematch)").
+ */
 export function clipCaption(c: Clip) {
   const title = boutTitle(c.bashoId, c.day, c.eastShikona || "East", c.westShikona || "West");
-  return c.remarks ? `${title} (${c.remarks})` : title;
+  const note = (c.remarks ?? "").replace(/^auto clip\w*(\s*·\s*)?/i, "").trim();
+  return note ? `${title} (${note})` : title;
 }
 
 /** Why Telegram can't fetch a video by URL, or null when it can. */

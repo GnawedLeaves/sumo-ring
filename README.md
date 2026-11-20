@@ -105,6 +105,14 @@ webhook `src/app/api/telegram/route.ts`.
   clips still appear in the inline list, marked 🔗, and send a link to the bout instead; "Share video" (phone share
   sheet) still sends the file itself.
 
+**Auto-post to your channel:** when the auto-clipper saves a clip (`recorder/`, not clips uploaded by hand), the
+bot posts it to `TELEGRAM_CHANNEL_ID` if either wrestler is on the whitelist. Manage the whitelist under
+Others → **Telegram auto-post** (`/telegram`, admins only). Same caption as inline mode; each clip is posted once
+(Firestore `telegramPosts/{clipId}`). Clips over 20 MB are uploaded by the server (Telegram's bot limit is 50 MB);
+bigger ones are posted as a link to the bout. Setup: add the bot to the channel as an **admin** that can post
+messages, then set `TELEGRAM_CHANNEL_ID` (`@channelname`, or `-100…` for a private channel) wherever the app runs
+(`.env.local` while the recorder uploads through the local app, Vercel env vars for production).
+
 Setup:
 
 1. In Telegram, message **@BotFather**: `/newbot` (name + a username ending in `bot`) → copy the token.

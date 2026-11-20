@@ -138,3 +138,16 @@ export async function checkClipUpload(assetId: string) {
   await requireAdmin();
   return store.getUploadStatus(assetId);
 }
+
+/** Adds or removes a wrestler from the Telegram auto-post whitelist (/telegram). */
+export async function setTelegramWhitelist(rikishiId: number, on: boolean): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    if (!Number.isInteger(rikishiId) || rikishiId <= 0) throw new Error("Unknown rikishi");
+    const { setWhitelisted } = await import("./telegram-autopost");
+    await setWhitelisted(rikishiId, on);
+    return { ok: true };
+  } catch (e) {
+    return fail(e);
+  }
+}

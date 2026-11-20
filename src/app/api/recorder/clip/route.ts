@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       westShikona: b.westShikona,
       // e.g. "Auto clip" or "Auto clip · Rematch"
       remarks: ["Auto clipped", b.note].filter(Boolean).join(" · "),
-    });
+    }, { autoPost: true }); // auto clips go to the Telegram channel when a whitelisted wrestler is in the bout
     // updateTag is Server Actions only; expire 0 so the next visit shows the clip (no stale page).
     revalidateTag(TAGS.clips, { expire: 0 });
     return Response.json({

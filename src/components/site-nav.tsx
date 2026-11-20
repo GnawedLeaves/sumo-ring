@@ -1,8 +1,9 @@
 "use client";
 
-import { BookOpen, CalendarDays, ChevronDown, CircleDot, Ellipsis, ImageUp, MonitorPlay, Newspaper, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronDown, CircleDot, Ellipsis, ImageUp, MonitorPlay, Newspaper, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/account/auth-provider";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
 
 export const NAV_ITEMS = [
@@ -13,11 +14,15 @@ export const NAV_ITEMS = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
 ] as const;
 
-/** Extra pages, tucked into the "Others" dropdown. Add new ones here. */
-export const OTHER_ITEMS = [
+/**
+ * Extra pages, tucked into the "Others" dropdown. Add new ones here. `adminOnly` hides the link for everyone else
+ * (display only: those pages and their actions re-check admin on the server).
+ */
+export const OTHER_ITEMS: readonly { href: string; label: string; icon: typeof ImageUp; adminOnly?: boolean }[] = [
   { href: "/portraits", label: "Rikishi portraits", icon: ImageUp },
   { href: "/kimarite", label: "Kimarite (techniques)", icon: BookOpen },
-] as const;
+  { href: "/telegram", label: "Telegram auto-post", icon: Send, adminOnly: true },
+];
 
 type IsActive = (href: string) => boolean;
 const none: IsActive = () => false;
@@ -36,7 +41,9 @@ function OthersMenu({ isActive, variant }: { isActive: IsActive; variant: "deskt
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const active = OTHER_ITEMS.some((i) => isActive(i.href));
+  const { isAdmin } = useAuth();
+  const items = OTHER_ITEMS.filter((i) => !i.adminOnly || isAdmin);
+  const active = items.some((i) => isActive(i.href));
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +66,7 @@ function OthersMenu({ isActive, variant }: { isActive: IsActive; variant: "deskt
         variant === "desktop" ? "right-0 top-full mt-3" : "bottom-full right-1 mb-2"
       }`}
     >
-      {OTHER_ITEMS.map((item) => {
+      {items.map((item) => {
         const here = isActive(item.href);
         return (
           <li key={item.href}>
