@@ -8,6 +8,8 @@
 import "server-only";
 import { adminDb, adminConfigured, withTimeout } from "./auth/firebase-admin";
 import type { Clip } from "./content";
+import { shortRank } from "./rank";
+import { getBashoRecords } from "./sumo-data";
 import { clipCaption, TELEGRAM_URL_LIMIT, unsendableReason } from "./telegram";
 
 /** Telegram's upload limit for bots (multipart). Bigger clips are posted as a link instead. */
@@ -48,10 +50,17 @@ async function telegramUpload(method: string, form: FormData) {
   return json.result!;
 }
 
+/** Both wrestlers' short banzuke ranks for that basho ("Y1e", "M8e"); missing ones are left out of the caption. */
+async function bashoRanks(clip: Clip): Promise<{ east?: string; west?: string }> {
+  const records = await getBashoRecords(clip.bashoId).catch(() => ({}) as Awaited<ReturnType<typeof getBashoRecords>>);
+  const short = (id: number) => (records[id]?.rank ? shortRank(records[id].rank) : undefined);
+  return { east: short(clip.eastId), west: short(clip.westId) };
+}
+
 /** Sends the clip as a video: by URL when Telegram can fetch it (≤ 20 MB MP4), uploaded when ≤ 50 MB, else a link. */
 async function sendClip(chat: string, clip: Clip): Promise<number> {
-  // "Kyushu Basho 2026 Day 12: Onosato vs Kirishima\n\nFull details: https://…/bout/<id>"
-  const caption = `${clipCaption(clip)}\n\nFull details: ${siteUrl()}/bout/${clip.boutId}`;
+  // "Kyushu Basho 2026 Day 12: Onosato (Y1e) vs Kirishima (O1w)\n\nFull details: https://…/bout/<id>"
+  const caption = `${clipCaption(clip, await bashoRanks(clip))}\n\nFull details: ${siteUrl()}/bout/${clip.boutId}`;
   const form = new FormData();
   form.append("chat_id", chat);
   form.append("caption", caption);

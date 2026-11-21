@@ -30,8 +30,10 @@ export async function tg<T = unknown>(method: string, body: Record<string, unkno
  * "Kyushu Basho 2026 Day 9: Hoshoryu vs Onosato (Rematch)". The auto-clipper's "Auto clipped" marker in remarks is
  * for the app only, so it's left out ("Auto clipped · Rematch" -> "(Rematch)").
  */
-export function clipCaption(c: Clip) {
-  const title = boutTitle(c.bashoId, c.day, c.eastShikona || "East", c.westShikona || "West");
+/** Ranks, when given, follow each name: "Onosato (Y1e) vs Kinbozan (M8e)". */
+export function clipCaption(c: Clip, ranks?: { east?: string; west?: string }) {
+  const name = (shikona: string, rank?: string) => (rank ? `${shikona} (${rank})` : shikona);
+  const title = boutTitle(c.bashoId, c.day, name(c.eastShikona || "East", ranks?.east), name(c.westShikona || "West", ranks?.west));
   const note = (c.remarks ?? "").replace(/^auto clip\w*(\s*·\s*)?/i, "").trim();
   return note ? `${title} (${note})` : title;
 }
